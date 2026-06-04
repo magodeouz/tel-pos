@@ -643,8 +643,7 @@ function initPinCheck() {
             const pin = document.getElementById("pinInput").value;
             if (pin === correctPin) {
                 localStorage.setItem(pinKey, "true");
-                document.getElementById("pinModal").style.display = "none";
-                startApp();
+                location.reload();
             } else {
                 document.getElementById("pinError").style.display = "block";
                 document.getElementById("pinInput").value = "";
