@@ -66,3 +66,5 @@
 {"ts":"2026-06-04T22:12:43.553Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":20,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-04T22:12:51.041Z","cmd":"click","args":"@e14","origin":"http://localhost:8000/","durationMs":42,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-04T22:12:53.151Z","cmd":"screenshot","args":"-a -o /tmp/fatih_order_created.png","origin":"http://localhost:8000/","durationMs":60,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T22:17:38.168Z","cmd":"reload","args":"","origin":"http://localhost:8000/","durationMs":364,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T22:17:41.326Z","cmd":"screenshot","args":"-a -o /tmp/customer_names.png","origin":"http://localhost:8000/","durationMs":71,"status":"ok","hasCookies":false,"mode":"launched"}

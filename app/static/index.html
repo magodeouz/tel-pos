@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container-fluid h-100">
+    <div class="container-fluid" style="display: flex; flex-direction: column; height: 100vh;">
         <!-- Top bar -->
-        <nav class="navbar navbar-dark bg-dark">
+        <nav class="navbar navbar-dark bg-dark" style="flex-shrink: 0;">
             <div class="navbar-brand mb-0 h1 d-flex align-items-center">
                 <img src="/static/logo.svg" alt="EFE POS" height="40" class="me-2">
                 <span>EFE POS</span>
@@ -21,98 +21,99 @@
             </div>
         </nav>
 
-        <div class="row g-0 mt-3">
-            <!-- Left: Orders & Customers -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header">
-                        <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">Siparişler</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-panel" type="button" role="tab">Müşteriler</button>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
-                        <div class="tab-content">
-                            <!-- Orders Tab -->
-                            <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
-                                <div id="ordersList">
-                                    <p class="text-muted">Yükleniyor...</p>
+        <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 12px; gap: 12px;">
+            <!-- Top Section: Orders, Details, Products -->
+            <div style="display: flex; gap: 12px; flex: 1; overflow: hidden;">
+                <!-- Left: Orders & Customers -->
+                <div style="flex: 0 0 25%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">Siparişler</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-panel" type="button" role="tab">Müşteriler</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body" style="flex: 1; overflow-y: auto; min-height: 0;">
+                            <div class="tab-content">
+                                <!-- Orders Tab -->
+                                <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+                                    <div id="ordersList">
+                                        <p class="text-muted">Yükleniyor...</p>
+                                    </div>
+                                </div>
+                                <!-- Customers Tab -->
+                                <div class="tab-pane fade" id="customers-panel" role="tabpanel">
+                                    <div id="customersList">
+                                        <p class="text-muted">Yükleniyor...</p>
+                                    </div>
                                 </div>
                             </div>
-                            <!-- Customers Tab -->
-                            <div class="tab-pane fade" id="customers-panel" role="tabpanel">
-                                <div id="customersList">
-                                    <p class="text-muted">Yükleniyor...</p>
+                        </div>
+                        <div class="card-footer">
+                            <button class="btn btn-success w-100" id="newOrderBtn">Yeni Sipariş</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center: Order items & total -->
+                <div style="flex: 0 0 30%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0" id="orderTitle">Sipariş Seçin</h5>
+                        </div>
+                        <div class="card-body" id="orderItems" style="flex: 1; overflow-y: auto; min-height: 0;">
+                            <p class="text-muted">Lütfen sipariş seçin</p>
+                        </div>
+                        <div style="border-top: 1px solid #ddd; padding: 10px; flex-shrink: 0;">
+                            <label for="orderNote" class="form-label mb-2" style="font-size: 0.9rem;">Not:</label>
+                            <textarea class="form-control form-control-sm" id="orderNote" placeholder="Sipariş notu..." rows="2" disabled></textarea>
+                        </div>
+                        <div class="card-footer">
+                            <div class="row">
+                                <div class="col">
+                                    <strong>Toplam:</strong>
+                                </div>
+                                <div class="col text-end">
+                                    <span id="orderTotal">0.00 TL</span>
+                                </div>
+                            </div>
+                            <div class="row mt-2 g-2">
+                                <div class="col">
+                                    <button class="btn btn-warning w-100" id="payBtn" disabled>Ödeme Al</button>
+                                </div>
+                                <div class="col">
+                                    <button class="btn btn-info w-100" id="printBtn" disabled>Yazdır</button>
+                                </div>
+                                <div class="col">
+                                    <button class="btn btn-danger w-100" id="cancelBtn" disabled>İptal</button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer">
-                        <button class="btn btn-success w-100" id="newOrderBtn">Yeni Sipariş</button>
-                    </div>
                 </div>
-            </div>
 
-            <!-- Center: Order items & total -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title" id="orderTitle">Sipariş Seçin</h5>
-                    </div>
-                    <div class="card-body" id="orderItems" style="max-height: 40vh; overflow-y: auto;">
-                        <p class="text-muted">Lütfen sipariş seçin</p>
-                    </div>
-                    <div style="max-height: 10vh; overflow-y: auto; border-top: 1px solid #ddd; padding: 10px;">
-                        <label for="orderNote" class="form-label mb-2" style="font-size: 0.9rem;">Not:</label>
-                        <textarea class="form-control form-control-sm" id="orderNote" placeholder="Sipariş notu..." rows="2" disabled></textarea>
-                    </div>
-                    <div class="card-footer">
-                        <div class="row">
-                            <div class="col">
-                                <strong>Toplam:</strong>
-                            </div>
-                            <div class="col text-end">
-                                <span id="orderTotal">0.00 TL</span>
-                            </div>
+                <!-- Right: Product categories & items -->
+                <div style="flex: 0 0 45%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Ürünler</h5>
                         </div>
-                        <div class="row mt-2 g-2">
-                            <div class="col">
-                                <button class="btn btn-warning w-100" id="payBtn" disabled>Ödeme Al</button>
-                            </div>
-                            <div class="col">
-                                <button class="btn btn-info w-100" id="printBtn" disabled>Yazdır</button>
-                            </div>
-                            <div class="col">
-                                <button class="btn btn-danger w-100" id="cancelBtn" disabled>İptal</button>
+                        <div class="card-body" style="flex: 1; overflow-y: auto; min-height: 0;">
+                            <div id="categoriesContainer">
+                                <p class="text-muted">Yükleniyor...</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right: Product categories & items -->
-            <div class="col-md-5">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">Ürünler</h5>
-                    </div>
-                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
-                        <div id="categoriesContainer">
-                            <p class="text-muted">Yükleniyor...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bottom: All orders list -->
-        <div class="row mt-3 mb-3">
-            <div class="col-12">
-                <div class="card">
+            <!-- Bottom: All orders list -->
+            <div style="flex: 0 0 40%; display: flex; flex-direction: column; overflow: hidden;">
+                <div class="card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Tüm Siparişler</h5>
                         <nav id="paginationNav" style="display: none;">
@@ -123,7 +124,7 @@
                             </ul>
                         </nav>
                     </div>
-                    <div class="card-body" style="max-height: 40vh; overflow-y: auto;">
+                    <div class="card-body" style="flex: 1; overflow-y: auto; min-height: 0;">
                         <div id="allOrdersList" class="row g-3">
                             <div class="col-12">
                                 <p class="text-muted text-center">Yükleniyor...</p>
