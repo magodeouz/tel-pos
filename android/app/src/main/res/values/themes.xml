@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TelPOS" parent="Theme.MaterialComponents.DayNight">
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorTertiary">@color/md_theme_tertiary</item>
+    </style>
+
+    <color name="md_theme_primary">#1f6feb</color>
+    <color name="md_theme_secondary">#7c5295</color>
+    <color name="md_theme_tertiary">#b8860b</color>
+</resources>

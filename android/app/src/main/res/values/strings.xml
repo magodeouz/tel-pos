@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tel-POS</string>
+    <string name="app_title">Tel-POS Ayarları</string>
+    <string name="server_ip">Sunucu IP Adresi</string>
+    <string name="server_port">Sunucu Portu</string>
+    <string name="button_save">Kaydet</string>
+    <string name="button_test">Bağlantı Test Et</string>
+</resources>

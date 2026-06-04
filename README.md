@@ -104,17 +104,38 @@ curl -X POST http://localhost:8000/api/incoming-call \
 
 ```
 tel-pos/
-├── app/
-│   ├── main.py          # FastAPI app + startup
-│   ├── database.py      # SQLAlchemy setup
-│   ├── models.py        # ORM modelleri
-│   ├── config.py        # Sabitleri
-│   ├── printer.py       # ESC/POS controller
-│   ├── routers/         # API endpoints
-│   └── static/          # HTML/JS/CSS
+├── app/                     # Python FastAPI backend
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── config.py
+│   ├── printer.py
+│   ├── routers/
+│   └── static/              # HTML/JS/CSS frontend
+├── android/                 # Kotlin Android APK
+│   ├── app/
+│   │   ├── src/main/
+│   │   │   ├── AndroidManifest.xml
+│   │   │   ├── java/com/telpos/
+│   │   │   └── res/
+│   │   └── build.gradle
+│   ├── build.gradle
+│   └── settings.gradle
 ├── requirements.txt
-├── tel-pos.spec         # PyInstaller config
+├── tel-pos.spec
 └── README.md
+```
+
+## Android APK
+
+Ayrı Kotlin projesi. Detaylı bilgi: [android/README.md](android/README.md)
+
+Kurulum:
+```bash
+cd android
+./gradlew assembleDebug    # Debug APK
+# veya
+./gradlew assembleRelease  # Release APK
 ```
 
 ## Lisans
