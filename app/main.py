@@ -44,7 +44,8 @@ if base_path.exists():
 
 @app.get("/robots.txt")
 async def robots():
-    return PlainTextResponse("User-agent: *\nDisallow: /")
+    content = "User-agent: *\nDisallow: /"
+    return PlainTextResponse(content, headers={"X-Robots-Tag": "noindex, nofollow"})
 
 
 @app.get("/")
