@@ -28,20 +28,34 @@ POS ekranında:
 
 ## Cloud Deploy (Android APK Için)
 
-Tel-POS Android cihazla çalışması için server cloud'da olmalı.
+Tel-POS Android cihazla çalışması için server cloud'da olmalı. **WiFi dışında çalışması için zorunlu.**
 
-### Railway Deploy (Önerilen)
+### Railway Deploy (En Basit)
 
-1. [Railway.app](https://railway.app) → Sign up
-2. Yeni project → GitHub repo bağla
-3. Railway otomatik Dockerfile okur ve deploy eder
-4. URL oluşur: `https://tel-pos-xxxx.up.railway.app`
+1. GitHub'a push et: `git push origin main`
+2. [Railway.app](https://railway.app) → Sign up (free tier var)
+3. Dashboard → "Create Project" → "Deploy from GitHub"
+4. Repo seç (`tel-pos`)
+5. Railway otomatik detect ediyor:
+   - `Dockerfile` → build
+   - `requirements.txt` → dependencies
+   - PORT otomatik atanıyor
+6. **ÖNEMLİ: Persistent Data**
+   - Settings → Volumes → Add
+   - Mount Path: `/data`
+   - Save
+7. **Environment Variables**
+   - Settings → Variables
+   - `DB_DIR` = `/data` ekle
+8. Deploy tamamlanınca URL görünür: `https://tel-pos-xxxx.up.railway.app`
 
-### APK Ayarları
+### APK Ayarları (WiFi Dışında Çalışması İçin)
 
 Android APK Settings:
-- **Server IP**: `tel-pos-xxxx.up.railway.app`
+- **Server IP**: `tel-pos-xxxx.up.railway.app` (Railway'den alınan URL)
 - **Port**: `443` (HTTPS)
+
+**Sonuç:** Telefon her yerde çalar → Android APK → REST API → Cloud → POS açılır
 
 ---
 

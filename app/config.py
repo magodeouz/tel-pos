@@ -5,12 +5,19 @@ from pathlib import Path
 # Paths
 BASE_DIR = Path(__file__).parent.parent
 
-# PyInstaller'da DB'yi APPDATA'ya koy (update'te silinmez)
-if getattr(sys, 'frozen', False):
+# Database path — Railway > PyInstaller > Development
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Railway: use persistent volume
+    db_dir = Path(os.environ.get('DB_DIR', '/data'))
+    db_dir.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH = db_dir / 'tel_pos.db'
+elif getattr(sys, 'frozen', False):
+    # PyInstaller: use APPDATA (Windows)
     db_dir = Path(os.environ.get('APPDATA', '')) / 'TelPOS'
     db_dir.mkdir(parents=True, exist_ok=True)
     DATABASE_PATH = db_dir / 'tel_pos.db'
 else:
+    # Development: use project root
     DATABASE_PATH = BASE_DIR / "tel_pos.db"
 
 DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
