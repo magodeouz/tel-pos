@@ -51,10 +51,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadSettings() {
         val serverUrl = PrefsHelper.getServerUrl(this)
-        val parts = serverUrl.replace("http://", "").split(":")
+        val parts = serverUrl.replace("http://", "").replace("https://", "").split(":")
         if (parts.size >= 2) {
             binding.editIP.setText(parts[0])
             binding.editPort.setText(parts[1])
+        } else {
+            // Default to Cloudflare Tunnel
+            binding.editIP.setText("tel-pos.lumoria.tr")
+            binding.editPort.setText("443")
         }
     }
 
@@ -67,7 +71,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val serverUrl = "http://$ip:$port"
+        val protocol = if (port == "443") "https" else "http"
+        val serverUrl = "$protocol://$ip:$port"
         PrefsHelper.saveServerUrl(this, serverUrl)
         Toast.makeText(this, "Ayarlar kaydedildi", Toast.LENGTH_SHORT).show()
     }
@@ -81,7 +86,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val serverUrl = "http://$ip:$port"
+        val protocol = if (port == "443") "https" else "http"
+        val serverUrl = "$protocol://$ip:$port"
 
         Thread {
             try {

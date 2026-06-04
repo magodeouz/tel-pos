@@ -625,8 +625,42 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
     }
 });
 
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
+// PIN Check
+function initPinCheck() {
+    const pinKey = "tel-pos-pin-authenticated";
+    const correctPin = "3535";
+
+    if (localStorage.getItem(pinKey)) {
+        // Already authenticated, hide modal
+        document.getElementById("pinModal").style.display = "none";
+        startApp();
+    } else {
+        // Show PIN modal
+        document.getElementById("pinModal").style.display = "flex";
+
+        document.getElementById("pinInput").focus();
+        document.getElementById("pinSubmitBtn").addEventListener("click", () => {
+            const pin = document.getElementById("pinInput").value;
+            if (pin === correctPin) {
+                localStorage.setItem(pinKey, "true");
+                document.getElementById("pinModal").style.display = "none";
+                startApp();
+            } else {
+                document.getElementById("pinError").style.display = "block";
+                document.getElementById("pinInput").value = "";
+                document.getElementById("pinInput").focus();
+            }
+        });
+
+        document.getElementById("pinInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                document.getElementById("pinSubmitBtn").click();
+            }
+        });
+    }
+}
+
+function startApp() {
     initWebSocket();
     loadCategories();
     loadOrders();
@@ -641,4 +675,9 @@ document.addEventListener("DOMContentLoaded", () => {
             debounceNoteUpdate(currentOrderId);
         }
     });
+}
+
+// Initialize
+document.addEventListener("DOMContentLoaded", () => {
+    initPinCheck();
 });

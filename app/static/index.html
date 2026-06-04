@@ -8,6 +8,25 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- PIN Modal -->
+    <div id="pinModal" class="modal d-flex align-items-center justify-content-center" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;">
+        <div class="modal-dialog" style="width: 400px;">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">PIN Giriş</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="mb-3">Sistem PIN'ini girin (4 haneli)</p>
+                    <input type="password" id="pinInput" class="form-control form-control-lg text-center" placeholder="••••" maxlength="4" inputmode="numeric">
+                    <div id="pinError" class="text-danger mt-2" style="display: none;">Hatalı PIN</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="pinSubmitBtn" class="btn btn-primary w-100">Giriş Yap</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container-fluid" style="display: flex; flex-direction: column; height: 100vh;">
         <!-- Top bar -->
         <nav class="navbar navbar-dark bg-dark" style="flex-shrink: 0;">
