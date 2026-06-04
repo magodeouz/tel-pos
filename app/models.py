@@ -34,6 +34,7 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey("categories.id"))
     name = Column(String)
     price = Column(Float)
+    note = Column(Text, nullable=True)
     active = Column(Boolean, default=True)
 
     category = relationship("Category", back_populates="products")

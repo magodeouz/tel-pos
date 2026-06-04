@@ -1,0 +1,33 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ANDROID_HOME=/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/ndk/27.0.11902837/bin
+
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jdk-headless \
+    wget \
+    unzip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p $ANDROID_HOME && \
+    cd $ANDROID_HOME && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && \
+    unzip -q commandlinetools-linux-11076708_latest.zip && \
+    rm commandlinetools-linux-11076708_latest.zip && \
+    mkdir -p cmdline-tools/latest && \
+    mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
+
+RUN yes | sdkmanager --licenses > /dev/null 2>&1 && \
+    sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;27.0.11902837" > /dev/null 2>&1
+
+WORKDIR /app
+
+COPY android/ /app/
+
+RUN chmod +x /app/gradlew
+
+RUN ./gradlew clean assembleDebug 2>&1 | tail -50
+
+RUN ls -lah app/build/outputs/apk/debug/

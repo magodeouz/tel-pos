@@ -47,6 +47,8 @@ function renderCategories() {
         .join("");
 }
 
+let editingProductId = null;
+
 function updateCategorySelect() {
     const select = document.getElementById("productCategory");
     select.innerHTML = '<option value="">Kategori seçin</option>' + categories.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
@@ -63,14 +65,17 @@ async function loadProducts() {
         html += cat.products
             .map(
                 (prod) => `
-            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded bg-white">
-                <div>
-                    <strong>${prod.name}</strong><br>
-                    <small>${prod.price.toFixed(2)} TL</small>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-warning" onclick="editProduct(${prod.id})">Düzenle</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${prod.id})">Sil</button>
+            <div class="mb-2 p-2 border rounded bg-white">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${prod.name}</strong><br>
+                        <small>${prod.price.toFixed(2)} TL</small>
+                        ${prod.note ? `<br><small class="text-secondary">Not: ${prod.note}</small>` : ""}
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-warning" onclick="editProduct(${prod.id})">Düzenle</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${prod.id})">Sil</button>
+                    </div>
                 </div>
             </div>
         `
@@ -97,14 +102,33 @@ async function deleteProduct(productId) {
 }
 
 async function editProduct(productId) {
-    const name = prompt("Yeni ürün adı:");
-    if (name) {
-        const price = prompt("Yeni fiyat:");
-        if (price) {
-            await API.put(`/api/products/${productId}`, { name, price: parseFloat(price) });
-            loadProducts();
+    const cats = await API.get("/api/categories");
+    let product = null;
+    for (const cat of cats) {
+        const found = cat.products.find(p => p.id === productId);
+        if (found) {
+            product = found;
+            break;
         }
     }
+
+    if (!product) return;
+
+    const name = prompt("Ürün adı:", product.name);
+    if (name === null) return;
+
+    const price = prompt("Fiyat:", product.price);
+    if (price === null) return;
+
+    const note = prompt("Not:", product.note || "");
+    if (note === null) return;
+
+    await API.put(`/api/products/${productId}`, {
+        name,
+        price: parseFloat(price),
+        note: note || null
+    });
+    loadProducts();
 }
 
 document.getElementById("categoryForm").addEventListener("submit", async (e) => {
@@ -120,11 +144,13 @@ document.getElementById("productForm").addEventListener("submit", async (e) => {
     const category_id = parseInt(document.getElementById("productCategory").value);
     const name = document.getElementById("productName").value;
     const price = parseFloat(document.getElementById("productPrice").value);
+    const note = document.getElementById("productNote").value;
 
-    await API.post("/api/products", { category_id, name, price });
+    await API.post("/api/products", { category_id, name, price, note: note || "" });
 
     document.getElementById("productName").value = "";
     document.getElementById("productPrice").value = "";
+    document.getElementById("productNote").value = "";
     document.getElementById("productCategory").value = "";
 
     loadProducts();

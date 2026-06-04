@@ -94,8 +94,10 @@ function renderCategories() {
                 .map(
                     (prod) => `
                 <button class="btn btn-outline-primary btn-sm text-start"
-                    onclick="addProductToOrder(${prod.id}, '${prod.name}', ${prod.price})">
+                    onclick="addProductToOrder(${prod.id}, '${prod.name}', ${prod.price})"
+                    title="${prod.note ? prod.note : ''}">
                     ${prod.name} - ${prod.price.toFixed(2)} TL
+                    ${prod.note ? `<br><small class="text-secondary">${prod.note}</small>` : ""}
                 </button>
             `
                 )
@@ -147,9 +149,12 @@ function renderOrderDetails(order) {
     const itemsDiv = document.getElementById("orderItems");
     const titleDiv = document.getElementById("orderTitle");
     const totalDiv = document.getElementById("orderTotal");
+    const noteDiv = document.getElementById("orderNote");
 
     titleDiv.textContent = `Sipariş #${order.id}`;
     totalDiv.textContent = `${order.total.toFixed(2)} TL`;
+    noteDiv.value = order.note || "";
+    noteDiv.disabled = false;
 
     if (order.items.length === 0) {
         itemsDiv.innerHTML = '<p class="text-muted">Ürün eklenmedi</p>';
@@ -200,6 +205,20 @@ async function removeItem(orderId, itemId) {
     loadOrders();
 }
 
+let noteUpdateTimeout;
+async function saveOrderNote(orderId) {
+    const noteText = document.getElementById("orderNote").value;
+    if (orderId) {
+        await API.patch(`/api/orders/${orderId}/note`, { note: noteText });
+    }
+}
+
+function debounceNoteUpdate(orderId) {
+    clearTimeout(noteUpdateTimeout);
+    noteUpdateTimeout = setTimeout(() => saveOrderNote(orderId), 1000);
+}
+}
+
 async function checkPrinterStatus() {
     const status = await API.get("/api/printer/status");
     const badge = document.getElementById("printerStatus");
@@ -228,6 +247,8 @@ document.getElementById("payBtn").addEventListener("click", async () => {
         document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
         document.getElementById("orderTitle").textContent = "Sipariş Seçin";
         document.getElementById("orderTotal").textContent = "0.00 TL";
+        document.getElementById("orderNote").value = "";
+        document.getElementById("orderNote").disabled = true;
     }
 });
 
@@ -251,6 +272,8 @@ document.getElementById("cancelBtn").addEventListener("click", async () => {
             document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
             document.getElementById("orderTitle").textContent = "Sipariş Seçin";
             document.getElementById("orderTotal").textContent = "0.00 TL";
+            document.getElementById("orderNote").value = "";
+            document.getElementById("orderNote").disabled = true;
         }
     }
 });
@@ -295,4 +318,11 @@ document.addEventListener("DOMContentLoaded", () => {
     loadOrders();
     checkPrinterStatus();
     setInterval(checkPrinterStatus, 5000);
+
+    // Event listener for order note updates
+    document.getElementById("orderNote").addEventListener("input", () => {
+        if (currentOrderId) {
+            debounceNoteUpdate(currentOrderId);
+        }
+    });
 });

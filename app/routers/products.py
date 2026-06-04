@@ -25,11 +25,13 @@ class ProductCreate(BaseModel):
     category_id: int
     name: str
     price: float
+    note: str = ""
 
 
 class ProductUpdate(BaseModel):
     name: str = None
     price: float = None
+    note: str = None
     active: bool = None
 
 
@@ -38,6 +40,7 @@ class ProductResponse(BaseModel):
     category_id: int
     name: str
     price: float
+    note: str | None = None
     active: bool
 
     class Config:

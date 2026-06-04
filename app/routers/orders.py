@@ -172,3 +172,18 @@ def update_order_status(order_id: int, status_update: OrderStatusUpdate, db: Ses
     order.status = status_update.status
     db.commit()
     return {"ok": True, "status": order.status}
+
+
+class OrderNoteUpdate(BaseModel):
+    note: str
+
+
+@router.patch("/{order_id}/note")
+def update_order_note(order_id: int, note_update: OrderNoteUpdate, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Sipariş bulunamadı")
+
+    order.note = note_update.note
+    db.commit()
+    return {"ok": True, "note": order.note}
