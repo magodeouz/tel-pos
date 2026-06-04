@@ -500,11 +500,47 @@ document.getElementById("nextPageBtn").addEventListener("click", (e) => {
     }
 });
 
+// Save customer button
+document.getElementById("saveCustomerBtn").addEventListener("click", async () => {
+    const phone = document.getElementById("customerPhone").value;
+    const name = document.getElementById("customerName").value;
+    const surname = document.getElementById("customerSurname").value;
+    const address = document.getElementById("customerAddress").value;
+    const note = document.getElementById("customerNote").value;
+
+    if (!phone || !name) {
+        alert("Telefon ve isim gereklidir!");
+        return;
+    }
+
+    const fullName = surname ? `${name} ${surname}` : name;
+
+    const customerData = await API.post("/api/customers", {
+        phone,
+        name: fullName,
+        address,
+        note,
+    });
+
+    loadCustomers();
+    bootstrap.Modal.getInstance(document.getElementById("customerModal")).hide();
+
+    // If coming from incoming call, create order
+    if (window.createOrderAfterCustomer) {
+        window.createOrderAfterCustomer = false;
+        const order = await API.post("/api/orders", { customer_id: customerData.id });
+        currentOrderId = order.id;
+        renderOrderDetails(order);
+        loadOrders();
+    }
+});
+
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
     initWebSocket();
     loadCategories();
     loadOrders();
+    loadCustomers();
     loadAllOrders(1);
     checkPrinterStatus();
     setInterval(checkPrinterStatus, 5000);
