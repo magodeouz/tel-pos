@@ -1,26 +1,16 @@
-FROM ubuntu:22.04
+FROM andreasgoransson/android-ndk:r25c
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV ANDROID_HOME=/android-sdk
-ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/ndk/27.0.11902837/bin
+ENV GRADLE_HOME=/opt/gradle
+ENV PATH=$GRADLE_HOME/bin:$PATH
 
-RUN apt-get update && apt-get install -y \
-    openjdk-17-jdk-headless \
-    wget \
-    unzip \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p $ANDROID_HOME && \
-    cd $ANDROID_HOME && \
-    wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && \
-    unzip -q commandlinetools-linux-11076708_latest.zip && \
-    rm commandlinetools-linux-11076708_latest.zip && \
-    mkdir -p cmdline-tools/latest && \
-    mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
-
-RUN yes | sdkmanager --licenses > /dev/null 2>&1 && \
-    sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;27.0.11902837" > /dev/null 2>&1
+# Download and install Gradle
+RUN mkdir -p /opt && \
+    curl -s -L https://services.gradle.org/distributions/gradle-8.5-bin.zip -o /tmp/gradle-8.5-bin.zip && \
+    unzip -q /tmp/gradle-8.5-bin.zip -d /opt && \
+    mv /opt/gradle-8.5 $GRADLE_HOME && \
+    rm /tmp/gradle-8.5-bin.zip
 
 WORKDIR /app
 
@@ -28,6 +18,10 @@ COPY android/ /app/
 
 RUN chmod +x /app/gradlew
 
-RUN ./gradlew clean assembleDebug 2>&1 | tail -50
+RUN gradle --version && java -version
+
+RUN gradle assembleDebug -x lint
 
 RUN ls -lah app/build/outputs/apk/debug/
+
+CMD ["bash"]
