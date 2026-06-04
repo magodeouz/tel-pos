@@ -383,7 +383,6 @@ function debounceNoteUpdate(orderId) {
     clearTimeout(noteUpdateTimeout);
     noteUpdateTimeout = setTimeout(() => saveOrderNote(orderId), 1000);
 }
-}
 
 async function checkPrinterStatus() {
     const status = await API.get("/api/printer/status");
