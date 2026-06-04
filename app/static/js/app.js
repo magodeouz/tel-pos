@@ -68,6 +68,45 @@ function handleIncomingCall(data) {
         document.getElementById("callCustomerName").textContent = data.customer.name;
         document.getElementById("callCustomerAddress").textContent = data.customer.address || "-";
         document.getElementById("callCustomerNote").textContent = data.customer.note || "-";
+
+        // Display past orders
+        const ordersList = document.getElementById("customerOrdersList");
+        const orders = data.customer.orders || [];
+
+        if (orders.length === 0) {
+            ordersList.innerHTML = '<p class="text-muted">Geçmiş sipariş yok</p>';
+        } else {
+            ordersList.innerHTML = orders
+                .map(
+                    (order) => `
+                <div class="card mb-2">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Sipariş #${order.id}</strong></span>
+                            <span class="badge bg-secondary">${order.status}</span>
+                        </div>
+                        <small class="text-muted">
+                            ${new Date(order.created_at).toLocaleString("tr-TR")}
+                        </small>
+                        <div class="mt-2 small">
+                            ${order.items
+                                .map(
+                                    (item) => `
+                                <div>${item.product_name} × ${item.quantity} = ${(item.quantity * item.unit_price).toFixed(2)} TL</div>
+                            `
+                                )
+                                .join("")}
+                        </div>
+                        <div class="mt-2">
+                            <strong>Toplam: ${order.total.toFixed(2)} TL</strong>
+                        </div>
+                        ${order.note ? `<div class="mt-2 text-muted"><small>Not: ${order.note}</small></div>` : ""}
+                    </div>
+                </div>
+            `
+                )
+                .join("");
+        }
     } else {
         customerInfo.style.display = "none";
         newCustomerInfo.style.display = "block";

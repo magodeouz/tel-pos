@@ -82,3 +82,39 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
     db.delete(db_customer)
     db.commit()
     return {"ok": True}
+
+
+@router.get("/{customer_id}/orders")
+def get_customer_orders(customer_id: int, db: Session = Depends(get_db)):
+    from ..models import Order
+
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Müşteri bulunamadı")
+
+    orders = db.query(Order).filter(Order.customer_id == customer_id).order_by(Order.created_at.desc()).all()
+
+    result = []
+    for order in orders:
+        items = [
+            {
+                "product_name": item.product.name,
+                "quantity": item.quantity,
+                "unit_price": item.unit_price,
+                "total": item.quantity * item.unit_price,
+            }
+            for item in order.items
+        ]
+        total = sum(item.quantity * item.unit_price for item in order.items)
+        result.append(
+            {
+                "id": order.id,
+                "status": order.status,
+                "note": order.note,
+                "created_at": order.created_at.isoformat(),
+                "items": items,
+                "total": total,
+            }
+        )
+
+    return result

@@ -92,17 +92,25 @@
 
     <!-- Incoming call modal -->
     <div class="modal fade" id="incomingCallModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title">☎️ Gelen Arama</h5>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                     <p><strong>Telefon:</strong> <span id="callPhone"></span></p>
                     <div id="customerInfo" style="display: none;">
-                        <p><strong>Müşteri:</strong> <span id="callCustomerName"></span></p>
+                        <hr>
+                        <h6>Müşteri Bilgisi</h6>
+                        <p><strong>İsim:</strong> <span id="callCustomerName"></span></p>
                         <p><strong>Adres:</strong> <span id="callCustomerAddress"></span></p>
                         <p><strong>Not:</strong> <span id="callCustomerNote"></span></p>
+
+                        <hr>
+                        <h6>Geçmiş Siparişler</h6>
+                        <div id="customerOrdersList">
+                            <p class="text-muted">Siparış yok</p>
+                        </div>
                     </div>
                     <div id="newCustomerInfo" style="display: none;" class="alert alert-info">
                         Yeni müşteri - sisteme eklemek ister misiniz?

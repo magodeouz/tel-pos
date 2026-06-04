@@ -1,0 +1,20 @@
+name = "tel-pos"
+type = "python"
+main = "app:app"
+compatibility_date = "2024-06-05"
+
+[env.production]
+name = "tel-pos-production"
+routes = [
+  { pattern = "api.tel-pos.workers.dev/*", zone_id = "" }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tel-pos-db"
+database_id = "your-database-id"
+
+[env.production.d1_databases]
+binding = "DB"
+database_name = "tel-pos-db-prod"
+database_id = "your-prod-database-id"
