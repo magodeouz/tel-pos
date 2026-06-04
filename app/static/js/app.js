@@ -635,13 +635,17 @@ function initPinCheck() {
         document.getElementById("pinModal").style.display = "none";
         startApp();
     } else {
-        // Show PIN modal
+        // Show PIN modal and blur background
         document.getElementById("pinModal").style.display = "flex";
+        document.getElementById("mainContainer").style.filter = "blur(10px)";
+        document.getElementById("mainContainer").style.pointerEvents = "none";
 
         document.getElementById("pinInput").focus();
         document.getElementById("pinSubmitBtn").addEventListener("click", () => {
             const pin = document.getElementById("pinInput").value;
             if (pin === correctPin) {
+                document.getElementById("mainContainer").style.filter = "none";
+                document.getElementById("mainContainer").style.pointerEvents = "auto";
                 localStorage.setItem(pinKey, "true");
                 location.reload();
             } else {
