@@ -1,0 +1,14 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer circle -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="#DC143C" stroke-width="8"/>
+
+  <!-- Text -->
+  <text x="100" y="110" font-family="Arial, sans-serif" font-size="48" font-weight="bold"
+        fill="#DC143C" text-anchor="middle" font-style="italic">
+    efe pos
+  </text>
+
+  <!-- Flame accent (right side) -->
+  <path d="M 170 85 Q 180 75 175 60 Q 172 70 175 85 Q 170 95 165 100"
+        fill="#DC143C"/>
+</svg>

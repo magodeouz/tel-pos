@@ -34,3 +34,7 @@
 {"ts":"2026-06-04T21:37:17.154Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-04T21:38:16.061Z","cmd":"reload","args":"","origin":"http://localhost:8000/","durationMs":8,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-04T21:38:19.200Z","cmd":"snapshot","args":"-i -a -o /tmp/pos_final.png","origin":"http://localhost:8000/","durationMs":55,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:40:42.650Z","cmd":"goto","args":"http://localhost:8000/","origin":"http://localhost:8000/","durationMs":24,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:40:44.771Z","cmd":"screenshot","args":"-a -o /tmp/efe_pos_home.png","origin":"http://localhost:8000/","durationMs":37,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:40:57.573Z","cmd":"goto","args":"http://localhost:8000/admin","origin":"http://localhost:8000/admin","durationMs":20,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:40:59.693Z","cmd":"screenshot","args":"-a -o /tmp/efe_pos_admin.png","origin":"http://localhost:8000/admin","durationMs":65,"status":"ok","hasCookies":false,"mode":"launched"}
