@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EFE POS Yönetim</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+        }
+
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            background-color: #333;
+            border-bottom: 1px solid #444;
+        }
+
+        .form-control, .form-select, .input-group .form-control {
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+            color: #f0f0f0;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: #3a3a3a;
+            border-color: #0d6efd;
+            color: #f0f0f0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .table {
+            color: #f0f0f0;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #3a3a3a;
+        }
+
+        .table thead {
+            border-bottom: 2px solid #555;
+        }
+
+        .table td, .table th {
+            border-color: #444;
+            vertical-align: middle;
+        }
+
+        .nav-tabs {
+            border-bottom: 2px solid #444;
+        }
+
+        .nav-tabs .nav-link {
+            color: #aaa;
+            border: 1px solid transparent;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border-color: #555;
+            color: #f0f0f0;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #f0f0f0;
+            background-color: #333;
+            border-color: #555 #555 transparent;
+        }
+
+        .badge {
+            padding: 0.4em 0.6em;
+            font-size: 0.85em;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .stat-box {
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-box h4 {
+            color: #0d6efd;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-box p {
+            color: #aaa;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f0f0f0;
+            margin-top: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.85rem;
+        }
+
+        .modal-content {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+        }
+
+        .modal-header {
+            background-color: #333;
+            border-bottom: 1px solid #444;
+        }
+
+        .modal-body, .modal-footer {
+            border-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="navbar-brand mb-0 h1 d-flex align-items-center">
+            <img src="/static/logo.svg" alt="EFE POS" height="40" class="me-2">
+            <span>EFE POS Yönetim</span>
+        </div>
+        <a href="/" class="btn btn-outline-light">← POS'a Dön</a>
+    </nav>
+
+    <div class="container-fluid mt-4 mb-5">
+        <!-- Main Tabs -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-panel" type="button" role="tab">
+                    <i class="bi bi-box"></i> Ürün Yönetimi
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-panel" type="button" role="tab">
+                    <i class="bi bi-bar-chart"></i> Raporlama
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- TAB 1: Ürün Yönetimi -->
+            <div class="tab-pane fade show active" id="products-panel" role="tabpanel">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Ürün Listesi</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Search -->
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="productSearch" placeholder="Ürün adı veya kategoriye göre ara...">
+                                </div>
+
+                                <!-- Products Table -->
+                                <div class="table-container">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 5%;">ID</th>
+                                                <th style="width: 25%;">Ürün Adı</th>
+                                                <th style="width: 15%;">Kategori</th>
+                                                <th style="width: 15%;">Fiyat</th>
+                                                <th style="width: 20%;">Not</th>
+                                                <th style="width: 10%;">Aktif</th>
+                                                <th style="width: 10%;">İşlem</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="productsTableBody">
+                                            <tr><td colspan="7" class="text-center text-muted">Yükleniyor...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Yeni Ürün Ekle</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="productForm">
+                                    <div class="mb-3">
+                                        <label for="newProductName" class="form-label">Ürün Adı *</label>
+                                        <input type="text" class="form-control" id="newProductName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newProductPrice" class="form-label">Fiyat *</label>
+                                        <input type="number" class="form-control" id="newProductPrice" step="0.01" min="0" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newProductCategory" class="form-label">Kategori *</label>
+                                        <select class="form-select" id="newProductCategory" required>
+                                            <option value="">Kategori seçin</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newProductNote" class="form-label">Not</label>
+                                        <textarea class="form-control" id="newProductNote" rows="2" placeholder="İsteğe bağlı"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="newProductActive" checked>
+                                            <label class="form-check-label" for="newProductActive">
+                                                Aktif
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-plus-circle"></i> Ürün Ekle
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Raporlama -->
+            <div class="tab-pane fade" id="reports-panel" role="tabpanel">
+                <!-- Report Navigation Tabs -->
+                <ul class="nav nav-tabs mb-4" id="reportTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="sales-report-tab" data-bs-toggle="tab" data-bs-target="#sales-report-panel" type="button" role="tab">
+                            <i class="bi bi-graph-up"></i> Günlük/Aylık Satış
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="product-analysis-tab" data-bs-toggle="tab" data-bs-target="#product-analysis-panel" type="button" role="tab">
+                            <i class="bi bi-bag-check"></i> Ürün Analizi
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="customer-analysis-tab" data-bs-toggle="tab" data-bs-target="#customer-analysis-panel" type="button" role="tab">
+                            <i class="bi bi-person-check"></i> Müşteri Analizi
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Report Tab Content -->
+                <div class="tab-content">
+                    <!-- Sales Report -->
+                    <div class="tab-pane fade show active" id="sales-report-panel" role="tabpanel">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Günlük/Aylık Satış Raporu</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Date Filter -->
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <label for="salesStartDate" class="form-label">Başlangıç Tarihi</label>
+                                        <input type="date" class="form-control" id="salesStartDate">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="salesEndDate" class="form-label">Bitiş Tarihi</label>
+                                        <input type="date" class="form-control" id="salesEndDate">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>&nbsp;</label>
+                                        <button class="btn btn-primary w-100" id="applySalesFilter">
+                                            <i class="bi bi-funnel"></i> Filtrele
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>&nbsp;</label>
+                                        <button class="btn btn-secondary w-100" id="resetSalesFilter">
+                                            <i class="bi bi-arrow-clockwise"></i> Sıfırla
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Summary Stats -->
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="stat-box">
+                                            <p>Toplam Satış Miktarı</p>
+                                            <div class="stat-value" id="totalSalesAmount">0.00 TL</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="stat-box">
+                                            <p>Toplam Sipariş</p>
+                                            <div class="stat-value" id="totalOrdersCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="stat-box">
+                                            <p>Ortalama Sipariş Miktarı</p>
+                                            <div class="stat-value" id="avgOrderValue">0.00 TL</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="stat-box">
+                                            <p>Gün Sayısı</p>
+                                            <div class="stat-value" id="daysCount">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Daily Breakdown Table -->
+                                <h6 class="mt-4 mb-3">Günlük Detaylı Rapor</h6>
+                                <div class="table-container">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 25%;">Tarih</th>
+                                                <th style="width: 25%;">Sipariş Sayısı</th>
+                                                <th style="width: 25%;">Toplam Tutar</th>
+                                                <th style="width: 25%;">Ortalama</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="salesBreakdownBody">
+                                            <tr><td colspan="4" class="text-center text-muted">Veri yükleniyor...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Sales Analysis -->
+                    <div class="tab-pane fade" id="product-analysis-panel" role="tabpanel">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Ürün Satış Analizi</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Summary Stats -->
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <p>En Çok Satılan Ürün</p>
+                                            <div class="stat-value" style="font-size: 1.2rem; color: #28a745;" id="topProduct">-</div>
+                                            <small id="topProductQty" class="text-muted">0 adet</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <p>En Az Satılan Ürün</p>
+                                            <div class="stat-value" style="font-size: 1.2rem; color: #ffc107;" id="bottomProduct">-</div>
+                                            <small id="bottomProductQty" class="text-muted">0 adet</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <p>Toplam Ürün Satışı</p>
+                                            <div class="stat-value" id="totalProductsSold">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Product Sales Table -->
+                                <h6 class="mb-3">En Çok Satılan İlk 10 Ürün</h6>
+                                <div class="table-container">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 5%;">Sıra</th>
+                                                <th style="width: 35%;">Ürün Adı</th>
+                                                <th style="width: 15%;">Satış Miktarı</th>
+                                                <th style="width: 20%;">Gelir</th>
+                                                <th style="width: 25%;">Toplam Satışın %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="productSalesBody">
+                                            <tr><td colspan="5" class="text-center text-muted">Yükleniyor...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Spending Analysis -->
+                    <div class="tab-pane fade" id="customer-analysis-panel" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Müşteri Harcama Analizi</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Top Customers Summary -->
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <p>Toplam Müşteri Sayısı</p>
+                                            <div class="stat-value" id="totalCustomersCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <p>En Büyük Harcayan</p>
+                                            <div class="stat-value" style="font-size: 1rem; color: #17a2b8;" id="topSpender">-</div>
+                                            <small id="topSpenderAmount" class="text-muted">0.00 TL</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="stat-box">
+                                            <p>Toplam Satış Tutarı</p>
+                                            <div class="stat-value" id="totalSpending">0.00 TL</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Customers Spending Table -->
+                                <h6 class="mb-3">Müşteri Detayları (En Çok Harcayan)</h6>
+                                <div class="table-container">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 5%;">Sıra</th>
+                                                <th style="width: 20%;">Müşteri Adı</th>
+                                                <th style="width: 20%;">Telefon</th>
+                                                <th style="width: 15%;">Toplam Harcama</th>
+                                                <th style="width: 15%;">Sipariş Sayısı</th>
+                                                <th style="width: 25%;">Ort. Sipariş</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="customerSpendingBody">
+                                            <tr><td colspan="6" class="text-center text-muted">Yükleniyor...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal fade" id="editProductModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ürün Düzenle</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProductForm">
+                        <input type="hidden" id="editProductId">
+                        <div class="mb-3">
+                            <label for="editProductName" class="form-label">Ürün Adı</label>
+                            <input type="text" class="form-control" id="editProductName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProductPrice" class="form-label">Fiyat</label>
+                            <input type="number" class="form-control" id="editProductPrice" step="0.01" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProductCategory" class="form-label">Kategori</label>
+                            <select class="form-select" id="editProductCategory" required>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProductNote" class="form-label">Not</label>
+                            <textarea class="form-control" id="editProductNote" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editProductActive">
+                                <label class="form-check-label" for="editProductActive">
+                                    Aktif
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" id="saveEditProductBtn">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/management.js"></script>
+</body>
+</html>

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .database import engine, Base
 from .models import Customer, Category, Product, Order
-from .routers import customers, products, orders, incoming_call, ws
+from .routers import customers, products, orders, incoming_call, ws, reports
 from .printer import PrinterController
 from .config import PORT, HOST
 from .routers.incoming_call import set_ws_manager
@@ -27,6 +27,7 @@ app.include_router(products.router)
 app.include_router(orders.router)
 app.include_router(incoming_call.router)
 app.include_router(ws.router)
+app.include_router(reports.router)
 
 # WebSocket manager
 set_ws_manager(ws.manager)
@@ -55,6 +56,14 @@ async def admin():
     if html_path.exists():
         return FileResponse(html_path)
     return {"message": "Admin paneli"}
+
+
+@app.get("/management")
+async def management():
+    html_path = base_path / "management.html"
+    if html_path.exists():
+        return FileResponse(html_path)
+    return {"message": "Management paneli"}
 
 
 @app.get("/api/printer/status")

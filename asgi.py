@@ -4,5 +4,10 @@ Run: wrangler deploy
 """
 from app.main import app
 
-# FastAPI app is already an ASGI application
-__all__ = ['app']
+# Cloudflare Workers Python runtime handler
+async def handle(request):
+    # Convert Cloudflare request to ASGI
+    return await app(request)
+
+# Export for Cloudflare
+__all__ = ['handle']
