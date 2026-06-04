@@ -190,21 +190,28 @@ async function loadAllOrders(page = 1) {
 function renderAllOrders(orders) {
     const container = document.getElementById("allOrdersList");
     if (orders.length === 0) {
-        container.innerHTML = '<p class="text-muted">Sipariş yok</p>';
+        container.innerHTML = '<div class="col-12"><p class="text-muted text-center">Sipariş yok</p></div>';
         return;
     }
 
     container.innerHTML = orders
         .map(
             (order) => `
-        <div class="card mb-2" style="cursor: pointer;" onclick="showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">
-            <div class="card-body p-2">
-                <div class="d-flex justify-content-between">
-                    <span><strong>#${order.id}</strong></span>
-                    <span class="badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card h-100" style="cursor: pointer;" onclick="showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0">Sipariş #${order.id}</h6>
+                        <span class="badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
+                    </div>
+                    <small class="text-muted d-block mb-2">${new Date(order.created_at).toLocaleString("tr-TR")}</small>
+                    <p class="mb-2">
+                        <small><strong>${order.items.length} ürün</strong></small>
+                    </p>
+                    <hr class="my-2">
+                    <p class="mb-0"><strong class="text-success">${order.total.toFixed(2)} TL</strong></p>
+                    ${order.note ? `<p class="text-muted small mt-2 mb-0">Not: ${order.note.substring(0, 40)}${order.note.length > 40 ? '...' : ''}</p>` : ""}
                 </div>
-                <small class="text-muted">${new Date(order.created_at).toLocaleString("tr-TR")}</small><br>
-                <small>${order.items.length} ürün - <strong>${order.total.toFixed(2)} TL</strong></small>
             </div>
         </div>
     `
@@ -448,18 +455,12 @@ document.getElementById("nextPageBtn").addEventListener("click", (e) => {
     }
 });
 
-// Load all orders when switching to "Tümü" tab
-document.getElementById("all-tab").addEventListener("shown.bs.tab", () => {
-    if (document.getElementById("allOrdersList").textContent.includes("Yükleniyor")) {
-        loadAllOrders(1);
-    }
-});
-
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
     initWebSocket();
     loadCategories();
     loadOrders();
+    loadAllOrders(1);
     checkPrinterStatus();
     setInterval(checkPrinterStatus, 5000);
 
