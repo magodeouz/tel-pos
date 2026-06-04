@@ -26,6 +26,56 @@ POS ekranında:
 
 ---
 
+## Cloudflare Tunnel Kurulumu (Android İçin)
+
+Tel-POS'u özel bir ağdan (farklı WiFi, mobil veri vb.) erişilmesi gerekirse, Cloudflare Tunnel kullan.
+
+### 1️⃣ Cloudflare Tunnel Yükleme
+
+1. https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+   adresinden `cloudflared.exe` indir
+2. Bilgisayara koy (veya PATH'e ekle)
+
+### 2️⃣ Tunnel Kurulumu (1 Kez)
+
+Proje klasöründe `setup-tunnel.bat` dosyasını çalıştır:
+
+```bat
+setup-tunnel.bat
+```
+
+- Tarayıcıda Cloudflare'de login yap
+- Tunnel otomatik oluşturulur
+- Konfigürasyon kaydedilir
+
+### 3️⃣ Tunnel Başlatma
+
+Her kullanımda `start-tunnel.bat` dosyasını çalıştır:
+
+```bat
+start-tunnel.bat
+```
+
+Pencereyi açık tut, POS ve APK çalışırken.
+
+### 4️⃣ Otomatik Başlama (Opsiyonel)
+
+Windows açılırken Tunnel otomatik başlasın istersen:
+
+```bat
+setup-startup.bat
+```
+
+(Yönetici haklarıyla çalıştır)
+
+### 5️⃣ APK Ayarları
+
+Android APK Settings:
+- **Server Host**: `tel-pos-[randomId].trycloudflare.com` (setup-tunnel'dan aldığın URL)
+- **Port**: `443`
+
+---
+
 ## Cloud Deploy (Android APK Için)
 
 Tel-POS Android cihazla çalışması için server cloud'da olmalı. **WiFi dışında çalışması için zorunlu.**
