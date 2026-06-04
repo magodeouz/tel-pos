@@ -4,6 +4,7 @@ let customers = {};
 let incomingCallData = null;
 let allOrdersPage = 1;
 let allOrdersPages = 1;
+let itemNotes = {}; // Track notes for items: { item_id: "note text" }
 
 const API = {
     async get(url) {
@@ -209,15 +210,19 @@ function renderOrders(orders) {
                     ? customers[order.customer_id].name
                     : "Müşteri Yok";
                 return `
-        <div class="card mb-2 cursor-pointer" onclick="selectOrder(${order.id})"
-            style="cursor: pointer; background-color: ${currentOrderId === order.id ? '#e9ecef' : 'white'}">
+        <div class="card mb-2" style="background-color: ${currentOrderId === order.id ? '#e9ecef' : 'white'}">
             <div class="card-body p-2">
-                <div class="d-flex justify-content-between">
-                    <span><strong>#${order.id}</strong></span>
-                    <span class="badge bg-info">${order.items.length} ürün</span>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div style="flex: 1; cursor: pointer;" onclick="selectOrder(${order.id})">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span><strong>#${order.id}</strong></span>
+                            <span class="badge bg-info">${order.items.length} ürün</span>
+                        </div>
+                        <small class="text-success"><strong>${customerName}</strong></small><br>
+                        <small class="text-muted">${order.total.toFixed(2)} TL</small>
+                    </div>
+                    <button class="btn btn-sm btn-danger ms-2" onclick="cancelOrderFromList(${order.id}, event)" title="İptal">×</button>
                 </div>
-                <small class="text-success"><strong>${customerName}</strong></small><br>
-                <small class="text-muted">${order.total.toFixed(2)} TL</small>
             </div>
         </div>
     `;
@@ -241,29 +246,49 @@ function renderAllOrders(orders) {
         return;
     }
 
-    container.innerHTML = orders
-        .map(
-            (order) => `
-        <div class="col-md-6 col-lg-4 col-xl-3">
-            <div class="card h-100" style="cursor: pointer;" onclick="showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="card-title mb-0">Sipariş #${order.id}</h6>
-                        <span class="badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
-                    </div>
-                    <small class="text-muted d-block mb-2">${new Date(order.created_at).toLocaleString("tr-TR")}</small>
-                    <p class="mb-2">
-                        <small><strong>${order.items.length} ürün</strong></small>
-                    </p>
-                    <hr class="my-2">
-                    <p class="mb-0"><strong class="text-success">${order.total.toFixed(2)} TL</strong></p>
-                    ${order.note ? `<p class="text-muted small mt-2 mb-0">Not: ${order.note.substring(0, 40)}${order.note.length > 40 ? '...' : ''}</p>` : ""}
-                </div>
-            </div>
-        </div>
-    `
-        )
-        .join("");
+    // Sort by newest first (created_at DESC)
+    const sortedOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const tableHtml = `
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 8%;">Sipariş #</th>
+                    <th style="width: 20%;">Müşteri</th>
+                    <th style="width: 18%;">Tarih</th>
+                    <th style="width: 10%;">Ürün Sayısı</th>
+                    <th style="width: 12%;">Toplam</th>
+                    <th style="width: 12%;">Durum</th>
+                    <th style="width: 8%; text-align: center;">İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${sortedOrders.map(order => {
+                    const customerName = order.customer_id && customers[order.customer_id]
+                        ? customers[order.customer_id].name
+                        : "—";
+                    return `
+                    <tr style="cursor: pointer;" onclick="showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">
+                        <td><strong>#${order.id}</strong></td>
+                        <td>${customerName}</td>
+                        <td><small>${new Date(order.created_at).toLocaleString("tr-TR")}</small></td>
+                        <td>${order.items.length}</td>
+                        <td><strong>${order.total.toFixed(2)} TL</strong></td>
+                        <td>
+                            <span class="badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
+                            ${order.status !== 'paid' ? `<br><button class="btn btn-sm btn-success mt-1" onclick="event.stopPropagation(); markOrderAsPaid(${order.id})">Ödendi Yap</button>` : ''}
+                        </td>
+                        <td style="text-align: center;">
+                            <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">Aç</button>
+                        </td>
+                    </tr>
+                    `;
+                }).join("")}
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = tableHtml;
 }
 
 function getStatusText(status) {
@@ -341,18 +366,25 @@ function renderOrderDetails(order) {
     } else {
         itemsDiv.innerHTML = order.items
             .map(
-                (item) => `
+                (item) => {
+                    const itemNote = itemNotes[item.id] || "";
+                    return `
             <div class="row mb-2 pb-2 border-bottom">
-                <div class="col-8">${item.product_name}</div>
-                <div class="col-2">${item.quantity}x</div>
-                <div class="col-2 text-end">
+                <div class="col-7">${item.product_name}</div>
+                <div class="col-1">${item.quantity}x</div>
+                <div class="col-1 text-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="editItemNote(${item.id}, '${(itemNote).replace(/'/g, "\\'")}', '${item.product_name}')" title="Ürün notu">✏️</button>
+                </div>
+                <div class="col-1 text-end">
                     <button class="btn btn-sm btn-danger" onclick="removeItem(${order.id}, ${item.id})">×</button>
                 </div>
                 <div class="col-12 text-muted small">
                     ${item.quantity} × ${item.unit_price.toFixed(2)} = ${(item.quantity * item.unit_price).toFixed(2)} TL
                 </div>
+                ${itemNote ? `<div class="col-12 text-primary small"><strong>Not:</strong> ${itemNote}</div>` : ""}
             </div>
-        `
+        `;
+                }
             )
             .join("");
     }
@@ -396,6 +428,42 @@ async function saveOrderNote(orderId) {
 function debounceNoteUpdate(orderId) {
     clearTimeout(noteUpdateTimeout);
     noteUpdateTimeout = setTimeout(() => saveOrderNote(orderId), 1000);
+}
+
+function editItemNote(itemId, currentNote, productName) {
+    const newNote = prompt(`${productName} için not ekleyin:`, currentNote);
+    if (newNote !== null) {
+        itemNotes[itemId] = newNote;
+        // Re-render the current order to show the updated note
+        if (currentOrderId) {
+            const order = document.getElementById("orderItems");
+            // Trigger re-render by getting the order again
+            API.get(`/api/orders/${currentOrderId}`).then(updatedOrder => {
+                renderOrderDetails(updatedOrder);
+            });
+        }
+    }
+}
+
+async function cancelOrderFromList(orderId, event) {
+    event.stopPropagation();
+    if (confirm("Bu siparişi iptal etmek istediğinizden emin misiniz?")) {
+        await API.patch(`/api/orders/${orderId}/status`, { status: "cancelled" });
+        loadOrders();
+        if (currentOrderId === orderId) {
+            currentOrderId = null;
+            document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
+            document.getElementById("orderTitle").textContent = "Sipariş Seçin";
+            document.getElementById("orderTotal").textContent = "0.00 TL";
+            document.getElementById("orderNote").value = "";
+            document.getElementById("orderNote").disabled = true;
+        }
+    }
+}
+
+async function markOrderAsPaid(orderId) {
+    await API.patch(`/api/orders/${orderId}/status`, { status: "paid" });
+    loadAllOrders(allOrdersPage);
 }
 
 async function checkPrinterStatus() {
