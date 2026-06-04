@@ -22,14 +22,34 @@
         </nav>
 
         <div class="row g-0 mt-3">
-            <!-- Left: Active orders list -->
+            <!-- Left: Orders & Customers -->
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title">Aktif Siparişler</h5>
+                        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">Siparişler</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-panel" type="button" role="tab">Müşteriler</button>
+                            </li>
+                        </ul>
                     </div>
-                    <div class="card-body" id="ordersList" style="max-height: 70vh; overflow-y: auto;">
-                        <p class="text-muted">Yükleniyor...</p>
+                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="tab-content">
+                            <!-- Orders Tab -->
+                            <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+                                <div id="ordersList">
+                                    <p class="text-muted">Yükleniyor...</p>
+                                </div>
+                            </div>
+                            <!-- Customers Tab -->
+                            <div class="tab-pane fade" id="customers-panel" role="tabpanel">
+                                <div id="customersList">
+                                    <p class="text-muted">Yükleniyor...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-footer">
                         <button class="btn btn-success w-100" id="newOrderBtn">Yeni Sipariş</button>
@@ -188,12 +208,16 @@
                 <div class="modal-body">
                     <form id="customerForm">
                         <div class="mb-3">
-                            <label for="customerPhone" class="form-label">Telefon</label>
+                            <label for="customerPhone" class="form-label">Telefon *</label>
                             <input type="tel" class="form-control" id="customerPhone" required>
                         </div>
                         <div class="mb-3">
-                            <label for="customerName" class="form-label">Ad</label>
-                            <input type="text" class="form-control" id="customerName" required>
+                            <label for="customerName" class="form-label">İsim *</label>
+                            <input type="text" class="form-control" id="customerName" placeholder="Adı" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerSurname" class="form-label">Soyisim</label>
+                            <input type="text" class="form-control" id="customerSurname" placeholder="Soyadı">
                         </div>
                         <div class="mb-3">
                             <label for="customerAddress" class="form-label">Adres</label>

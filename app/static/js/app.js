@@ -154,6 +154,43 @@ async function loadOrders() {
     renderOrders(orders);
 }
 
+async function loadCustomers() {
+    const customers = await API.get("/api/customers");
+    renderCustomers(customers);
+}
+
+function renderCustomers(customers) {
+    const container = document.getElementById("customersList");
+    if (customers.length === 0) {
+        container.innerHTML = '<p class="text-muted">Müşteri yok</p>';
+        return;
+    }
+
+    container.innerHTML = customers
+        .map(
+            (customer) => `
+        <div class="card mb-2 cursor-pointer" style="cursor: pointer;" onclick="createOrderForCustomer(${customer.id}, '${customer.name}')">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between">
+                    <span><strong>${customer.name}</strong></span>
+                </div>
+                <small class="text-muted">${customer.phone}</small><br>
+                <small>${customer.address || "Adres yok"}</small>
+            </div>
+        </div>
+    `
+        )
+        .join("");
+}
+
+async function createOrderForCustomer(customerId, customerName) {
+    const order = await API.post("/api/orders", { customer_id: customerId });
+    currentOrderId = order.id;
+    renderOrderDetails(order);
+    loadOrders();
+    document.getElementById("orders-tab").click();
+}
+
 function renderOrders(orders) {
     const container = document.getElementById("ordersList");
     if (orders.length === 0) {
@@ -414,12 +451,20 @@ document.getElementById("createOrderFromCallBtn").addEventListener("click", asyn
         if (incomingCallData.customer) {
             customerId = incomingCallData.customer.id;
         } else {
-            const customerData = await API.post("/api/customers", {
-                phone: incomingCallData.phone,
-                name: "Yeni Müşteri",
-                address: "",
-            });
-            customerId = customerData.id;
+            // Show customer modal to collect details
+            document.getElementById("customerPhone").value = incomingCallData.phone;
+            document.getElementById("customerName").value = "";
+            document.getElementById("customerSurname").value = "";
+            document.getElementById("customerAddress").value = "";
+            document.getElementById("customerNote").value = "";
+
+            // Store the callback to create order after saving customer
+            window.createOrderAfterCustomer = true;
+
+            bootstrap.Modal.getInstance(document.getElementById("incomingCallModal")).hide();
+            const modal = new bootstrap.Modal(document.getElementById("customerModal"));
+            modal.show();
+            return;
         }
 
         const order = await API.post("/api/orders", { customer_id: customerId });
