@@ -150,6 +150,10 @@ function renderCategories() {
 }
 
 async function loadOrders() {
+    const allCustomers = await API.get("/api/customers/");
+    customers = {};
+    allCustomers.forEach(c => customers[c.id] = c);
+
     const orders = await API.get("/api/orders?status=open");
     renderOrders(orders);
 }
@@ -200,7 +204,11 @@ function renderOrders(orders) {
 
     container.innerHTML = orders
         .map(
-            (order) => `
+            (order) => {
+                const customerName = order.customer_id && customers[order.customer_id]
+                    ? customers[order.customer_id].name
+                    : "Müşteri Yok";
+                return `
         <div class="card mb-2 cursor-pointer" onclick="selectOrder(${order.id})"
             style="cursor: pointer; background-color: ${currentOrderId === order.id ? '#e9ecef' : 'white'}">
             <div class="card-body p-2">
@@ -208,10 +216,12 @@ function renderOrders(orders) {
                     <span><strong>#${order.id}</strong></span>
                     <span class="badge bg-info">${order.items.length} ürün</span>
                 </div>
+                <small class="text-success"><strong>${customerName}</strong></small><br>
                 <small class="text-muted">${order.total.toFixed(2)} TL</small>
             </div>
         </div>
-    `
+    `;
+            }
         )
         .join("");
 }
@@ -317,7 +327,11 @@ function renderOrderDetails(order) {
     const totalDiv = document.getElementById("orderTotal");
     const noteDiv = document.getElementById("orderNote");
 
-    titleDiv.textContent = `Sipariş #${order.id}`;
+    const customerName = order.customer_id && customers[order.customer_id]
+        ? customers[order.customer_id].name
+        : "Müşteri Yok";
+
+    titleDiv.textContent = `Sipariş #${order.id} - ${customerName}`;
     totalDiv.textContent = `${order.total.toFixed(2)} TL`;
     noteDiv.value = order.note || "";
     noteDiv.disabled = false;
@@ -421,7 +435,16 @@ document.getElementById("printBtn").addEventListener("click", async () => {
     if (currentOrderId) {
         const result = await API.post(`/api/orders/${currentOrderId}/print`, {});
         if (result.ok) {
-            alert("Yazıldı!");
+            alert("Yazıldı! Sipariş geçmiş siparişlere taşındı.");
+            // Move order to paid status
+            await API.patch(`/api/orders/${currentOrderId}/status`, { status: "paid" });
+            currentOrderId = null;
+            loadOrders();
+            document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
+            document.getElementById("orderTitle").textContent = "Sipariş Seçin";
+            document.getElementById("orderTotal").textContent = "0.00 TL";
+            document.getElementById("orderNote").value = "";
+            document.getElementById("orderNote").disabled = true;
         } else {
             alert("Yazıcı hatası: " + result.error);
         }
