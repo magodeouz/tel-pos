@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 import webbrowser
 import os
 import sys
@@ -40,6 +40,11 @@ else:
 
 if base_path.exists():
     app.mount("/static", StaticFiles(directory=base_path), name="static")
+
+
+@app.get("/robots.txt")
+async def robots():
+    return PlainTextResponse("User-agent: *\nDisallow: /")
 
 
 @app.get("/")

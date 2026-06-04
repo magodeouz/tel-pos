@@ -625,44 +625,6 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
     }
 });
 
-// PIN Check
-function initPinCheck() {
-    const pinKey = "tel-pos-pin-authenticated";
-    const correctPin = "3535";
-
-    if (localStorage.getItem(pinKey)) {
-        // Already authenticated, hide modal
-        document.getElementById("pinModal").style.display = "none";
-        startApp();
-    } else {
-        // Show PIN modal and blur background
-        document.getElementById("pinModal").style.display = "flex";
-        document.getElementById("mainContainer").style.filter = "blur(10px)";
-        document.getElementById("mainContainer").style.pointerEvents = "none";
-
-        document.getElementById("pinInput").focus();
-        document.getElementById("pinSubmitBtn").addEventListener("click", () => {
-            const pin = document.getElementById("pinInput").value;
-            if (pin === correctPin) {
-                document.getElementById("mainContainer").style.filter = "none";
-                document.getElementById("mainContainer").style.pointerEvents = "auto";
-                localStorage.setItem(pinKey, "true");
-                location.reload();
-            } else {
-                document.getElementById("pinError").style.display = "block";
-                document.getElementById("pinInput").value = "";
-                document.getElementById("pinInput").focus();
-            }
-        });
-
-        document.getElementById("pinInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                document.getElementById("pinSubmitBtn").click();
-            }
-        });
-    }
-}
-
 function startApp() {
     initWebSocket();
     loadCategories();
@@ -682,5 +644,5 @@ function startApp() {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-    initPinCheck();
+    startApp();
 });
