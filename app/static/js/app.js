@@ -2,6 +2,8 @@ let currentOrderId = null;
 let categories = [];
 let customers = {};
 let incomingCallData = null;
+let allOrdersPage = 1;
+let allOrdersPages = 1;
 
 const API = {
     async get(url) {
@@ -177,6 +179,87 @@ function renderOrders(orders) {
         .join("");
 }
 
+async function loadAllOrders(page = 1) {
+    const data = await API.get(`/api/orders/list/paginated?page=${page}&per_page=10`);
+    allOrdersPage = data.page;
+    allOrdersPages = data.pages;
+    renderAllOrders(data.orders);
+    updateAllOrdersPagination();
+}
+
+function renderAllOrders(orders) {
+    const container = document.getElementById("allOrdersList");
+    if (orders.length === 0) {
+        container.innerHTML = '<p class="text-muted">Sipariş yok</p>';
+        return;
+    }
+
+    container.innerHTML = orders
+        .map(
+            (order) => `
+        <div class="card mb-2" style="cursor: pointer;" onclick="showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between">
+                    <span><strong>#${order.id}</strong></span>
+                    <span class="badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
+                </div>
+                <small class="text-muted">${new Date(order.created_at).toLocaleString("tr-TR")}</small><br>
+                <small>${order.items.length} ürün - <strong>${order.total.toFixed(2)} TL</strong></small>
+            </div>
+        </div>
+    `
+        )
+        .join("");
+}
+
+function getStatusText(status) {
+    const texts = { open: "Açık", paid: "Ödendi", cancelled: "İptal" };
+    return texts[status] || status;
+}
+
+function getStatusBadgeColor(status) {
+    const colors = { open: "bg-info", paid: "bg-success", cancelled: "bg-danger" };
+    return colors[status] || "bg-secondary";
+}
+
+function showOrderDetail(orderId, status, createdAt, total, note, items) {
+    document.getElementById("detailOrderTitle").textContent = `Sipariş #${orderId}`;
+    document.getElementById("detailStatus").textContent = getStatusText(status);
+    document.getElementById("detailStatus").className = `badge ${getStatusBadgeColor(status)}`;
+    document.getElementById("detailDate").textContent = new Date(createdAt).toLocaleString("tr-TR");
+    document.getElementById("detailTotal").textContent = `${total.toFixed(2)} TL`;
+    document.getElementById("detailNote").textContent = note || "—";
+
+    const itemsHtml = items
+        .map(
+            (item) => `
+        <div class="row mb-2 pb-2 border-bottom">
+            <div class="col-8">${item.product_name}</div>
+            <div class="col-2 text-center">${item.quantity}x</div>
+            <div class="col-2 text-end">${(item.quantity * item.unit_price).toFixed(2)} TL</div>
+        </div>
+    `
+        )
+        .join("");
+
+    document.getElementById("detailItems").innerHTML = itemsHtml;
+
+    const modal = new bootstrap.Modal(document.getElementById("orderDetailModal"));
+    modal.show();
+}
+
+function updateAllOrdersPagination() {
+    const paginationNav = document.getElementById("paginationNav");
+    const pageInfo = document.getElementById("pageInfo");
+    const prevBtn = document.getElementById("prevPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+
+    pageInfo.textContent = `${allOrdersPage} / ${allOrdersPages}`;
+    prevBtn.parentElement.classList.toggle("disabled", allOrdersPage === 1);
+    nextBtn.parentElement.classList.toggle("disabled", allOrdersPage === allOrdersPages);
+    paginationNav.style.display = allOrdersPages > 1 ? "block" : "none";
+}
+
 async function selectOrder(orderId) {
     currentOrderId = orderId;
     const order = await API.get(`/api/orders/${orderId}`);
@@ -349,6 +432,28 @@ function updateTime() {
 
 setInterval(updateTime, 1000);
 updateTime();
+
+// Pagination event listeners
+document.getElementById("prevPageBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    if (allOrdersPage > 1) {
+        loadAllOrders(allOrdersPage - 1);
+    }
+});
+
+document.getElementById("nextPageBtn").addEventListener("click", (e) => {
+    e.preventDefault();
+    if (allOrdersPage < allOrdersPages) {
+        loadAllOrders(allOrdersPage + 1);
+    }
+});
+
+// Load all orders when switching to "Tümü" tab
+document.getElementById("all-tab").addEventListener("shown.bs.tab", () => {
+    if (document.getElementById("allOrdersList").textContent.includes("Yükleniyor")) {
+        loadAllOrders(1);
+    }
+});
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {

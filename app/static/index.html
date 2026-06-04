@@ -26,10 +26,35 @@
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title">Aktif Siparişler</h5>
+                        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-orders" type="button" role="tab">Aktif</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-orders" type="button" role="tab">Tümü</button>
+                            </li>
+                        </ul>
                     </div>
-                    <div class="card-body" id="ordersList" style="max-height: 70vh; overflow-y: auto;">
-                        <p class="text-muted">Yükleniyor...</p>
+                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="active-orders" role="tabpanel">
+                                <div id="ordersList">
+                                    <p class="text-muted">Yükleniyor...</p>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="all-orders" role="tabpanel">
+                                <div id="allOrdersList" class="mb-3">
+                                    <p class="text-muted">Yükleniyor...</p>
+                                </div>
+                                <nav id="paginationNav" style="display: none;">
+                                    <ul class="pagination pagination-sm">
+                                        <li class="page-item"><a class="page-link" href="#" id="prevPageBtn">Önceki</a></li>
+                                        <li class="page-item"><span class="page-link" id="pageInfo">1</span></li>
+                                        <li class="page-item"><a class="page-link" href="#" id="nextPageBtn">Sonraki</a></li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-footer">
                         <button class="btn btn-success w-100" id="newOrderBtn">Yeni Sipariş</button>
@@ -119,6 +144,35 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
                     <button type="button" class="btn btn-primary" id="createOrderFromCallBtn">Sipariş Aç</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Detail Modal -->
+    <div class="modal fade" id="orderDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailOrderTitle">Sipariş Detayı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Durum:</strong> <span id="detailStatus" class="badge"></span></p>
+                            <p><strong>Tarih:</strong> <span id="detailDate"></span></p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <h5 id="detailTotal"></h5>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Ürünler</h6>
+                    <div id="detailItems" class="mb-3"></div>
+                    <hr>
+                    <p><strong>Not:</strong></p>
+                    <p id="detailNote" class="text-muted"></p>
                 </div>
             </div>
         </div>

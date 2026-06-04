@@ -76,6 +76,66 @@ def list_orders(status: str = "open", db: Session = Depends(get_db)):
     return result
 
 
+class PaginatedOrderResponse(BaseModel):
+    total: int
+    page: int
+    per_page: int
+    pages: int
+    orders: list[OrderResponse]
+
+
+@router.get("/list/paginated", response_model=PaginatedOrderResponse)
+def list_orders_paginated(page: int = 1, per_page: int = 10, status: str = None, db: Session = Depends(get_db)):
+    query = db.query(Order).order_by(Order.created_at.desc())
+
+    if status:
+        query = query.filter(Order.status == status)
+
+    total = query.count()
+    pages = (total + per_page - 1) // per_page
+
+    if page < 1:
+        page = 1
+    if page > pages and pages > 0:
+        page = pages
+
+    offset = (page - 1) * per_page
+    orders = query.offset(offset).limit(per_page).all()
+
+    result = []
+    for order in orders:
+        total_price = sum(item.quantity * item.unit_price for item in order.items)
+        items = [
+            OrderItemResponse(
+                id=item.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+                product_name=item.product.name,
+            )
+            for item in order.items
+        ]
+        result.append(
+            OrderResponse(
+                id=order.id,
+                customer_id=order.customer_id,
+                status=order.status,
+                note=order.note,
+                created_at=order.created_at.isoformat(),
+                items=items,
+                total=total_price,
+            )
+        )
+
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+        "orders": result,
+    }
+
+
 @router.get("/{order_id}", response_model=OrderResponse)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
