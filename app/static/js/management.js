@@ -349,12 +349,110 @@ document.getElementById("resetSalesFilter").addEventListener("click", () => {
     loadSalesReport();
 });
 
+// ============= CATEGORY MANAGEMENT =============
+
+async function loadCategoriesList() {
+    try {
+        const data = await API.get("/api/categories");
+        renderCategoriesTable(data);
+    } catch (e) {
+        console.error("Error loading categories:", e);
+        alert("Kategoriler yüklenemedi");
+    }
+}
+
+function renderCategoriesTable(categories) {
+    const tbody = document.getElementById("categoriesTableBody");
+    if (categories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Kategori yok</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = categories
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        .map(cat => `
+            <tr>
+                <td>${cat.id}</td>
+                <td>${cat.name}</td>
+                <td>${cat.sort_order || 1}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editCategory(${cat.id}, '${cat.name}', ${cat.sort_order || 1})">
+                        <i class="bi bi-pencil"></i> Düzenle
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${cat.id})">
+                        <i class="bi bi-trash"></i> Sil
+                    </button>
+                </td>
+            </tr>
+        `)
+        .join("");
+}
+
+async function editCategory(id, name, sortOrder) {
+    const newName = prompt("Kategori adını düzenleyin:", name);
+    if (newName === null) return;
+
+    const newSortOrder = prompt("Sıra numarasını girin:", sortOrder);
+    if (newSortOrder === null) return;
+
+    try {
+        await API.put(`/api/categories/${id}`, {
+            name: newName,
+            sort_order: parseInt(newSortOrder) || 1
+        });
+        await loadCategoriesList();
+        await loadCategories();
+        await loadProducts();
+    } catch (e) {
+        alert("Kategori düzenlenemedi: " + e.message);
+    }
+}
+
+async function deleteCategory(id) {
+    if (!confirm("Bu kategoriyi silmek istediğinizden emin misiniz?")) return;
+
+    try {
+        await API.delete(`/api/categories/${id}`);
+        await loadCategoriesList();
+        await loadCategories();
+        await loadProducts();
+    } catch (e) {
+        alert("Kategori silinemedi: " + e.message);
+    }
+}
+
+document.getElementById("categoryForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("newCategoryName").value.trim();
+    const sortOrder = parseInt(document.getElementById("newCategorySortOrder").value) || 1;
+
+    if (!name) {
+        alert("Kategori adı boş olamaz");
+        return;
+    }
+
+    try {
+        await API.post("/api/categories", { name, sort_order: sortOrder });
+        document.getElementById("categoryForm").reset();
+        document.getElementById("newCategorySortOrder").value = "1";
+        await loadCategoriesList();
+        await loadCategories();
+        await loadProducts();
+        alert("Kategori eklendi");
+    } catch (e) {
+        alert("Kategori eklenemedi: " + e.message);
+    }
+});
+
 // ============= INITIALIZATION =============
 
 document.addEventListener("DOMContentLoaded", async () => {
     // Load product management
     await loadCategories();
     await loadProducts();
+
+    // Load category management
+    await loadCategoriesList();
 
     // Load reports with default dates
     setDateDefaults();
@@ -366,4 +464,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("sales-report-tab").addEventListener("shown.bs.tab", loadSalesReport);
     document.getElementById("product-analysis-tab").addEventListener("shown.bs.tab", loadProductSalesAnalysis);
     document.getElementById("customer-analysis-tab").addEventListener("shown.bs.tab", loadCustomerSpendingAnalysis);
+
+    // Load categories when switching to categories tab
+    document.getElementById("categories-tab").addEventListener("shown.bs.tab", loadCategoriesList);
 });

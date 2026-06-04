@@ -8,73 +8,74 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
         body {
-            background-color: #1a1a1a;
-            color: #f0f0f0;
+            background-color: #f8f9fa;
+            color: #333;
         }
 
         .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .card {
-            background-color: #2a2a2a;
-            border: 1px solid #444;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .card-header {
-            background-color: #333;
-            border-bottom: 1px solid #444;
+            background-color: #f0f2f5;
+            border-bottom: 1px solid #dee2e6;
         }
 
         .form-control, .form-select, .input-group .form-control {
-            background-color: #3a3a3a;
-            border: 1px solid #555;
-            color: #f0f0f0;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            color: #333;
         }
 
         .form-control:focus, .form-select:focus {
-            background-color: #3a3a3a;
+            background-color: #fff;
             border-color: #0d6efd;
-            color: #f0f0f0;
+            color: #333;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
 
         .table {
-            color: #f0f0f0;
+            color: #333;
         }
 
         .table-hover tbody tr:hover {
-            background-color: #3a3a3a;
+            background-color: #f0f2f5;
         }
 
         .table thead {
-            border-bottom: 2px solid #555;
+            border-bottom: 2px solid #dee2e6;
+            background-color: #f0f2f5;
         }
 
         .table td, .table th {
-            border-color: #444;
+            border-color: #dee2e6;
             vertical-align: middle;
         }
 
         .nav-tabs {
-            border-bottom: 2px solid #444;
+            border-bottom: 2px solid #dee2e6;
         }
 
         .nav-tabs .nav-link {
-            color: #aaa;
+            color: #666;
             border: 1px solid transparent;
         }
 
         .nav-tabs .nav-link:hover {
-            border-color: #555;
-            color: #f0f0f0;
+            border-color: #dee2e6;
+            color: #333;
         }
 
         .nav-tabs .nav-link.active {
-            color: #f0f0f0;
-            background-color: #333;
-            border-color: #555 #555 transparent;
+            color: #333;
+            background-color: #fff;
+            border-color: #dee2e6 #dee2e6 #fff;
         }
 
         .badge {
@@ -87,8 +88,8 @@
         }
 
         .stat-box {
-            background-color: #3a3a3a;
-            border: 1px solid #555;
+            background-color: #f0f2f5;
+            border: 1px solid #dee2e6;
             border-radius: 0.5rem;
             padding: 1.5rem;
             text-align: center;
@@ -101,7 +102,7 @@
         }
 
         .stat-box p {
-            color: #aaa;
+            color: #666;
             margin-bottom: 0;
             font-size: 0.9rem;
         }
@@ -109,7 +110,7 @@
         .stat-value {
             font-size: 1.8rem;
             font-weight: bold;
-            color: #f0f0f0;
+            color: #333;
             margin-top: 0.5rem;
         }
 
@@ -119,27 +120,27 @@
         }
 
         .modal-content {
-            background-color: #2a2a2a;
-            border: 1px solid #444;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
         }
 
         .modal-header {
-            background-color: #333;
-            border-bottom: 1px solid #444;
+            background-color: #f0f2f5;
+            border-bottom: 1px solid #dee2e6;
         }
 
         .modal-body, .modal-footer {
-            border-color: #444;
+            border-color: #dee2e6;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-light bg-light" style="border-bottom: 1px solid #dee2e6;">
         <div class="navbar-brand mb-0 h1 d-flex align-items-center">
             <img src="/static/logo.svg" alt="EFE POS" height="40" class="me-2">
             <span>EFE POS Yönetim</span>
         </div>
-        <a href="/" class="btn btn-outline-light">← POS'a Dön</a>
+        <a href="/" class="btn btn-outline-dark">← POS'a Dön</a>
     </nav>
 
     <div class="container-fluid mt-4 mb-5">
@@ -148,6 +149,11 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-panel" type="button" role="tab">
                     <i class="bi bi-box"></i> Ürün Yönetimi
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-panel" type="button" role="tab">
+                    <i class="bi bi-tags"></i> Kategori Yönetimi
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -238,7 +244,60 @@
                 </div>
             </div>
 
-            <!-- TAB 2: Raporlama -->
+            <!-- TAB 2: Kategori Yönetimi -->
+            <div class="tab-pane fade" id="categories-panel" role="tabpanel">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Kategori Listesi</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 5%;">ID</th>
+                                                <th style="width: 50%;">Kategori Adı</th>
+                                                <th style="width: 15%;">Sıra</th>
+                                                <th style="width: 30%;">İşlem</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="categoriesTableBody">
+                                            <tr><td colspan="4" class="text-center text-muted">Yükleniyor...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Yeni Kategori Ekle</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="categoryForm">
+                                    <div class="mb-3">
+                                        <label for="newCategoryName" class="form-label">Kategori Adı *</label>
+                                        <input type="text" class="form-control" id="newCategoryName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newCategorySortOrder" class="form-label">Sıra</label>
+                                        <input type="number" class="form-control" id="newCategorySortOrder" value="1" min="1">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-plus-circle"></i> Kategori Ekle
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Raporlama -->
             <div class="tab-pane fade" id="reports-panel" role="tabpanel">
                 <!-- Report Navigation Tabs -->
                 <ul class="nav nav-tabs mb-4" id="reportTabs" role="tablist">
