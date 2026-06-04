@@ -44,3 +44,8 @@
 {"ts":"2026-06-04T21:49:40.538Z","cmd":"reload","args":"","origin":"http://localhost:8000/","durationMs":27,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-04T21:49:43.638Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":12,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-04T21:52:13.971Z","cmd":"reload","args":"","origin":"http://localhost:8000/","durationMs":38,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:52:17.156Z","cmd":"snapshot","args":"-i -a -o /tmp/orders_list.png","origin":"http://localhost:8000/","durationMs":121,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:52:28.551Z","cmd":"click","args":"@e2","origin":"http://localhost:8000/","durationMs":35,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:52:30.698Z","cmd":"snapshot","args":"-i -a -o /tmp/all_orders.png","origin":"http://localhost:8000/","durationMs":70,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:52:41.108Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-04T21:52:55.114Z","cmd":"console","args":"","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
