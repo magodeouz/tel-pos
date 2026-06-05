@@ -409,7 +409,6 @@ function renderOrderDetails(order) {
     // Update totals with discount
     updateOrderTotal(order);
 
-    document.getElementById("payBtn").disabled = order.items.length === 0;
     document.getElementById("printBtn").disabled = order.items.length === 0;
     document.getElementById("cancelBtn").disabled = false;
 }
@@ -535,19 +534,6 @@ document.getElementById("newOrderBtn").addEventListener("click", async () => {
     currentOrderId = order.id;
     renderOrderDetails(order);
     loadOrders();
-});
-
-document.getElementById("payBtn").addEventListener("click", async () => {
-    if (currentOrderId) {
-        await API.patch(`/api/orders/${currentOrderId}/status`, { status: "paid" });
-        currentOrderId = null;
-        loadOrders();
-        document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
-        document.getElementById("orderTitle").textContent = "Sipariş Seçin";
-        document.getElementById("orderTotal").textContent = "0.00 TL";
-        document.getElementById("orderNote").value = "";
-        document.getElementById("orderNote").disabled = true;
-    }
 });
 
 document.getElementById("printBtn").addEventListener("click", async () => {
