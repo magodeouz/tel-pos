@@ -104,24 +104,21 @@
 
                             <!-- Payment Method -->
                             <div class="mb-1">
-                                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; display: block;">Ödeme:</label>
+                                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; display: block;">Ödeme Yöntemi:</label>
                                 <div class="d-grid gap-1" style="grid-template-columns: 1fr 1fr;">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="nakit" disabled style="font-size: 0.7rem; padding: 0.25rem;">Nakit</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="kredi_karti" disabled style="font-size: 0.7rem; padding: 0.25rem;">Kartı</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="cari" disabled style="font-size: 0.7rem; padding: 0.25rem;">Cari</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="odenmes" disabled style="font-size: 0.7rem; padding: 0.25rem;">Ödenmez</button>
+                                    <button type="button" class="btn btn-success btn-sm payment-btn" data-method="nakit" disabled style="font-size: 0.7rem; padding: 0.25rem; opacity: 0.6;">Nakit</button>
+                                    <button type="button" class="btn btn-primary btn-sm payment-btn" data-method="kredi_karti" disabled style="font-size: 0.7rem; padding: 0.25rem; opacity: 0.6;">Kartı</button>
+                                    <button type="button" class="btn btn-warning btn-sm payment-btn" data-method="cari" disabled style="font-size: 0.7rem; padding: 0.25rem; opacity: 0.6; color: black;">Cari</button>
+                                    <button type="button" class="btn btn-danger btn-sm payment-btn" data-method="odenmes" disabled style="font-size: 0.7rem; padding: 0.25rem; opacity: 0.6;">Ödenmez</button>
                                 </div>
                             </div>
 
                             <div class="row g-1">
-                                <div class="col-12" style="padding: 0.25rem;">
-                                    <button class="btn btn-warning w-100 btn-sm" id="payBtn" disabled style="font-size: 0.75rem; padding: 0.35rem;">Ödeme</button>
-                                </div>
-                                <div class="col-6" style="padding: 0.25rem;">
+                                <div class="col" style="padding: 0.25rem;">
                                     <button class="btn btn-info w-100 btn-sm" id="printBtn" disabled style="font-size: 0.75rem; padding: 0.35rem;">Yazdır</button>
                                 </div>
-                                <div class="col-6" style="padding: 0.25rem;">
-                                    <button class="btn btn-danger w-100 btn-sm" id="cancelBtn" disabled style="font-size: 0.75rem; padding: 0.35rem;">İptal</button>
+                                <div class="col" style="padding: 0.25rem;">
+                                    <button class="btn btn-secondary w-100 btn-sm" id="cancelBtn" disabled style="font-size: 0.75rem; padding: 0.35rem;">İptal</button>
                                 </div>
                             </div>
                         </div>

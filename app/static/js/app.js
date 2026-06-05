@@ -396,12 +396,10 @@ function renderOrderDetails(order) {
 
     paymentButtons.forEach(btn => {
         btn.disabled = order.items.length === 0;
-        if (btn.dataset.method === order.payment_method) {
-            btn.classList.remove("btn-outline-secondary");
-            btn.classList.add("btn-success");
+        if (btn.dataset.method === order.payment_method && order.payment_method !== "pending") {
+            btn.style.opacity = "1";
         } else {
-            btn.classList.remove("btn-success");
-            btn.classList.add("btn-outline-secondary");
+            btn.style.opacity = "0.6";
         }
     });
 
@@ -437,6 +435,16 @@ async function removeItem(orderId, itemId) {
     const order = await API.get(`/api/orders/${orderId}`);
     renderOrderDetails(order);
     loadOrders();
+}
+
+async function printOrder(orderId) {
+    try {
+        const result = await API.post(`/api/orders/${orderId}/print`, {});
+        return result.ok;
+    } catch (e) {
+        console.error("Print error:", e);
+        return false;
+    }
 }
 
 function updateOrderTotal(order) {
@@ -711,16 +719,38 @@ function startApp() {
         }
     });
 
-    // Payment method buttons
+    // Payment method buttons - auto-pay and print
     document.querySelectorAll(".payment-btn").forEach(btn => {
         btn.addEventListener("click", async () => {
             if (currentOrderId) {
                 const paymentMethod = btn.dataset.method;
+
+                // Update payment method
                 await API.patch(`/api/orders/${currentOrderId}/payment`, {
                     payment_method: paymentMethod,
                 });
+
+                // Mark order as paid
+                await API.patch(`/api/orders/${currentOrderId}/status`, {
+                    status: "paid",
+                });
+
+                // Auto print
                 const order = await API.get(`/api/orders/${currentOrderId}`);
-                renderOrderDetails(order);
+                await printOrder(currentOrderId);
+
+                // Refresh orders list and reset
+                loadOrders();
+                loadAllOrders(1);
+                currentOrderId = null;
+
+                // Show success and return to orders tab
+                document.getElementById("orders-tab").click();
+
+                // Clear order details
+                document.getElementById("orderItems").innerHTML = '<p class="text-muted">Siparişi tamamlandı!</p>';
+                document.getElementById("orderTitle").textContent = "Sipariş Seçin";
+                document.getElementById("orderTotal").textContent = "0.00 TL";
             }
         });
     });
