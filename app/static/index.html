@@ -75,23 +75,54 @@
                             <textarea class="form-control form-control-sm" id="orderNote" placeholder="Sipariş notu..." rows="2" disabled></textarea>
                         </div>
                         <div class="card-footer">
-                            <div class="row">
-                                <div class="col">
-                                    <strong>Toplam:</strong>
-                                </div>
-                                <div class="col text-end">
-                                    <span id="orderTotal">0.00 TL</span>
+                            <!-- Discount Section -->
+                            <div style="margin-bottom: 10px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                                <label class="form-label mb-2" style="font-size: 0.9rem;">İndirim:</label>
+                                <div class="row g-1 mb-2">
+                                    <div class="col-6">
+                                        <input type="number" id="discountAmount" class="form-control form-control-sm" placeholder="₺ Tutar" min="0" step="0.01">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" id="discountPercent" class="form-control form-control-sm" placeholder="% Oran" min="0" max="100" step="0.1">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="row mt-2 g-2">
+
+                            <!-- Total & Payment -->
+                            <div class="row mb-2">
+                                <div class="col"><strong>Ara Toplam:</strong></div>
+                                <div class="col text-end"><span id="orderSubtotal">0.00 TL</span></div>
+                            </div>
+                            <div class="row mb-2" id="discountDisplay" style="display: none;">
+                                <div class="col"><strong>İndirim:</strong></div>
+                                <div class="col text-end"><span id="discountDisplayValue">-0.00 TL</span></div>
+                            </div>
+                            <div class="row mb-2" style="border-top: 1px solid #ddd; padding-top: 8px;">
+                                <div class="col"><strong>Toplam:</strong></div>
+                                <div class="col text-end"><span id="orderTotal">0.00 TL</span></div>
+                            </div>
+
+                            <!-- Payment Method -->
+                            <div class="mb-2">
+                                <label class="form-label mb-1" style="font-size: 0.9rem;">Ödeme Yöntemi:</label>
+                                <select id="paymentMethod" class="form-select form-select-sm" disabled>
+                                    <option value="pending">Seçiniz</option>
+                                    <option value="nakit">1. Nakit</option>
+                                    <option value="kredi_karti">2. Kredi Kartı</option>
+                                    <option value="cari">3. Cari</option>
+                                    <option value="odenmes">4. Ödenmez</option>
+                                </select>
+                            </div>
+
+                            <div class="row g-2">
                                 <div class="col">
-                                    <button class="btn btn-warning w-100" id="payBtn" disabled>Ödeme Al</button>
+                                    <button class="btn btn-warning w-100 btn-sm" id="payBtn" disabled>Ödeme Al</button>
                                 </div>
                                 <div class="col">
-                                    <button class="btn btn-info w-100" id="printBtn" disabled>Yazdır</button>
+                                    <button class="btn btn-info w-100 btn-sm" id="printBtn" disabled>Yazdır</button>
                                 </div>
                                 <div class="col">
-                                    <button class="btn btn-danger w-100" id="cancelBtn" disabled>İptal</button>
+                                    <button class="btn btn-danger w-100 btn-sm" id="cancelBtn" disabled>İptal</button>
                                 </div>
                             </div>
                         </div>

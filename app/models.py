@@ -47,6 +47,9 @@ class Order(Base):
     id = Column(Integer, primary_key=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     status = Column(String, default="open")  # open / paid / cancelled
+    payment_method = Column(String, default="pending")  # nakit / kredi_karti / cari / odenmes
+    discount_amount = Column(Float, default=0)  # Rakamsal indirim (TL)
+    discount_percent = Column(Float, default=0)  # Yüzdesel indirim (%)
     note = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

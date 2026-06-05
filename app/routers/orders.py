@@ -247,3 +247,39 @@ def update_order_note(order_id: int, note_update: OrderNoteUpdate, db: Session =
     order.note = note_update.note
     db.commit()
     return {"ok": True, "note": order.note}
+
+
+class PaymentUpdate(BaseModel):
+    payment_method: str  # nakit / kredi_karti / cari / odenmes
+
+
+@router.patch("/{order_id}/payment")
+def update_payment_method(order_id: int, payment: PaymentUpdate, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Sipariş bulunamadı")
+
+    order.payment_method = payment.payment_method
+    db.commit()
+    return {"ok": True, "payment_method": order.payment_method}
+
+
+class DiscountUpdate(BaseModel):
+    discount_amount: float = 0  # Rakamsal indirim
+    discount_percent: float = 0  # Yüzdesel indirim
+
+
+@router.patch("/{order_id}/discount")
+def update_discount(order_id: int, discount: DiscountUpdate, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Sipariş bulunamadı")
+
+    order.discount_amount = discount.discount_amount
+    order.discount_percent = discount.discount_percent
+    db.commit()
+    return {
+        "ok": True,
+        "discount_amount": order.discount_amount,
+        "discount_percent": order.discount_percent,
+    }

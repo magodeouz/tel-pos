@@ -389,6 +389,19 @@ function renderOrderDetails(order) {
             .join("");
     }
 
+    // Payment method & discount
+    const paymentSelect = document.getElementById("paymentMethod");
+    const discountAmountInput = document.getElementById("discountAmount");
+    const discountPercentInput = document.getElementById("discountPercent");
+
+    paymentSelect.disabled = order.items.length === 0;
+    paymentSelect.value = order.payment_method || "pending";
+    discountAmountInput.value = order.discount_amount || 0;
+    discountPercentInput.value = order.discount_percent || 0;
+
+    // Update totals with discount
+    updateOrderTotal(order);
+
     document.getElementById("payBtn").disabled = order.items.length === 0;
     document.getElementById("printBtn").disabled = order.items.length === 0;
     document.getElementById("cancelBtn").disabled = false;
@@ -415,6 +428,27 @@ async function removeItem(orderId, itemId) {
     const order = await API.get(`/api/orders/${orderId}`);
     renderOrderDetails(order);
     loadOrders();
+}
+
+function updateOrderTotal(order) {
+    const subtotal = order.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    const discountAmount = parseFloat(document.getElementById("discountAmount").value) || 0;
+    const discountPercent = parseFloat(document.getElementById("discountPercent").value) || 0;
+
+    const percentDiscount = subtotal * (discountPercent / 100);
+    const totalDiscount = discountAmount + percentDiscount;
+    const finalTotal = Math.max(0, subtotal - totalDiscount);
+
+    document.getElementById("orderSubtotal").textContent = `${subtotal.toFixed(2)} TL`;
+
+    if (totalDiscount > 0) {
+        document.getElementById("discountDisplay").style.display = "";
+        document.getElementById("discountDisplayValue").textContent = `-${totalDiscount.toFixed(2)} TL`;
+    } else {
+        document.getElementById("discountDisplay").style.display = "none";
+    }
+
+    document.getElementById("orderTotal").textContent = `${finalTotal.toFixed(2)} TL`;
 }
 
 let noteUpdateTimeout;
@@ -638,6 +672,44 @@ function startApp() {
     document.getElementById("orderNote").addEventListener("input", () => {
         if (currentOrderId) {
             debounceNoteUpdate(currentOrderId);
+        }
+    });
+
+    // Event listeners for discount and payment
+    document.getElementById("discountAmount").addEventListener("change", async () => {
+        if (currentOrderId) {
+            const discountAmount = parseFloat(document.getElementById("discountAmount").value) || 0;
+            const discountPercent = parseFloat(document.getElementById("discountPercent").value) || 0;
+            await API.patch(`/api/orders/${currentOrderId}/discount`, {
+                discount_amount: discountAmount,
+                discount_percent: discountPercent,
+            });
+            const order = await API.get(`/api/orders/${currentOrderId}`);
+            updateOrderTotal(order);
+        }
+    });
+
+    document.getElementById("discountPercent").addEventListener("change", async () => {
+        if (currentOrderId) {
+            const discountAmount = parseFloat(document.getElementById("discountAmount").value) || 0;
+            const discountPercent = parseFloat(document.getElementById("discountPercent").value) || 0;
+            await API.patch(`/api/orders/${currentOrderId}/discount`, {
+                discount_amount: discountAmount,
+                discount_percent: discountPercent,
+            });
+            const order = await API.get(`/api/orders/${currentOrderId}`);
+            updateOrderTotal(order);
+        }
+    });
+
+    document.getElementById("paymentMethod").addEventListener("change", async () => {
+        if (currentOrderId) {
+            const paymentMethod = document.getElementById("paymentMethod").value;
+            if (paymentMethod !== "pending") {
+                await API.patch(`/api/orders/${currentOrderId}/payment`, {
+                    payment_method: paymentMethod,
+                });
+            }
         }
     });
 }
