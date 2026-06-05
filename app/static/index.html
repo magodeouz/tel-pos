@@ -63,65 +63,65 @@
 
                 <!-- Center: Order items & total -->
                 <div style="flex: 0 0 30%; display: flex; flex-direction: column; overflow: hidden;">
-                    <div class="card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0" id="orderTitle">Sipariş Seçin</h5>
+                    <div class="card" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; font-size: 0.85rem;">
+                        <div class="card-header" style="padding: 0.5rem;">
+                            <h5 class="card-title mb-0" id="orderTitle" style="font-size: 0.95rem;">Sipariş Seçin</h5>
                         </div>
-                        <div class="card-body" id="orderItems" style="flex: 1; overflow-y: auto; min-height: 0;">
+                        <div class="card-body" id="orderItems" style="flex: 1; overflow-y: auto; min-height: 0; padding: 0.5rem; font-size: 0.8rem;">
                             <p class="text-muted">Lütfen sipariş seçin</p>
                         </div>
-                        <div style="border-top: 1px solid #ddd; padding: 10px; flex-shrink: 0;">
-                            <label for="orderNote" class="form-label mb-2" style="font-size: 0.9rem;">Not:</label>
-                            <textarea class="form-control form-control-sm" id="orderNote" placeholder="Sipariş notu..." rows="2" disabled></textarea>
+                        <div style="border-top: 1px solid #ddd; padding: 0.4rem 0.5rem; flex-shrink: 0;">
+                            <label for="orderNote" class="form-label mb-1" style="font-size: 0.75rem; margin-bottom: 0.25rem !important;">Not:</label>
+                            <textarea class="form-control form-control-sm" id="orderNote" placeholder="Sipariş notu..." rows="1" disabled style="font-size: 0.75rem;"></textarea>
                         </div>
-                        <div class="card-footer">
+                        <div class="card-footer" style="padding: 0.5rem; background: #f8f9fa;">
                             <!-- Discount Section -->
-                            <div style="margin-bottom: 10px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                                <label class="form-label mb-2" style="font-size: 0.9rem;">İndirim:</label>
-                                <div class="row g-1 mb-2">
+                            <div style="margin-bottom: 0.5rem; padding: 0.4rem; background: #fff; border-radius: 3px; border: 1px solid #e9ecef;">
+                                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; display: block;">İndirim:</label>
+                                <div class="row g-1 mb-1">
                                     <div class="col-6">
-                                        <input type="number" id="discountAmount" class="form-control form-control-sm" placeholder="₺ Tutar" min="0" step="0.01">
+                                        <input type="number" id="discountAmount" class="form-control form-control-sm" placeholder="₺" min="0" step="0.01" style="font-size: 0.75rem;">
                                     </div>
                                     <div class="col-6">
-                                        <input type="number" id="discountPercent" class="form-control form-control-sm" placeholder="% Oran" min="0" max="100" step="0.1">
+                                        <input type="number" id="discountPercent" class="form-control form-control-sm" placeholder="%" min="0" max="100" step="0.1" style="font-size: 0.75rem;">
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Total & Payment -->
-                            <div class="row mb-2">
-                                <div class="col"><strong>Ara Toplam:</strong></div>
-                                <div class="col text-end"><span id="orderSubtotal">0.00 TL</span></div>
+                            <div class="row g-0 mb-1" style="font-size: 0.8rem;">
+                                <div class="col"><strong>Ara:</strong></div>
+                                <div class="col text-end"><span id="orderSubtotal">0.00</span> ₺</div>
                             </div>
-                            <div class="row mb-2" id="discountDisplay" style="display: none;">
+                            <div class="row g-0 mb-1" id="discountDisplay" style="display: none; font-size: 0.8rem; color: #dc3545;">
                                 <div class="col"><strong>İndirim:</strong></div>
-                                <div class="col text-end"><span id="discountDisplayValue">-0.00 TL</span></div>
+                                <div class="col text-end"><span id="discountDisplayValue">-0.00</span> ₺</div>
                             </div>
-                            <div class="row mb-2" style="border-top: 1px solid #ddd; padding-top: 8px;">
-                                <div class="col"><strong>Toplam:</strong></div>
-                                <div class="col text-end"><span id="orderTotal">0.00 TL</span></div>
+                            <div class="row g-0 mb-1" style="border-top: 1px solid #dee2e6; border-bottom: 2px solid #dee2e6; padding-top: 0.25rem; font-size: 0.85rem; font-weight: bold;">
+                                <div class="col">Toplam:</div>
+                                <div class="col text-end"><span id="orderTotal">0.00</span> ₺</div>
                             </div>
 
                             <!-- Payment Method -->
-                            <div class="mb-2">
-                                <label class="form-label mb-1" style="font-size: 0.9rem;">Ödeme Yöntemi:</label>
-                                <div class="d-grid gap-2" style="grid-template-columns: 1fr 1fr;">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="nakit" disabled>1. Nakit</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="kredi_karti" disabled>2. Kredi Kartı</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="cari" disabled>3. Cari</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="odenmes" disabled>4. Ödenmez</button>
+                            <div class="mb-1">
+                                <label style="font-size: 0.75rem; margin-bottom: 0.25rem; display: block;">Ödeme:</label>
+                                <div class="d-grid gap-1" style="grid-template-columns: 1fr 1fr;">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="nakit" disabled style="font-size: 0.7rem; padding: 0.25rem;">Nakit</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="kredi_karti" disabled style="font-size: 0.7rem; padding: 0.25rem;">Kartı</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="cari" disabled style="font-size: 0.7rem; padding: 0.25rem;">Cari</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="odenmes" disabled style="font-size: 0.7rem; padding: 0.25rem;">Ödenmez</button>
                                 </div>
                             </div>
 
-                            <div class="row g-2">
-                                <div class="col">
-                                    <button class="btn btn-warning w-100 btn-sm" id="payBtn" disabled>Ödeme Al</button>
+                            <div class="row g-1">
+                                <div class="col-12" style="padding: 0.25rem;">
+                                    <button class="btn btn-warning w-100 btn-sm" id="payBtn" disabled style="font-size: 0.75rem; padding: 0.35rem;">Ödeme</button>
                                 </div>
-                                <div class="col">
-                                    <button class="btn btn-info w-100 btn-sm" id="printBtn" disabled>Yazdır</button>
+                                <div class="col-6" style="padding: 0.25rem;">
+                                    <button class="btn btn-info w-100 btn-sm" id="printBtn" disabled style="font-size: 0.75rem; padding: 0.35rem;">Yazdır</button>
                                 </div>
-                                <div class="col">
-                                    <button class="btn btn-danger w-100 btn-sm" id="cancelBtn" disabled>İptal</button>
+                                <div class="col-6" style="padding: 0.25rem;">
+                                    <button class="btn btn-danger w-100 btn-sm" id="cancelBtn" disabled style="font-size: 0.75rem; padding: 0.35rem;">İptal</button>
                                 </div>
                             </div>
                         </div>
