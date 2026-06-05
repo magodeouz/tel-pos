@@ -105,13 +105,12 @@
                             <!-- Payment Method -->
                             <div class="mb-2">
                                 <label class="form-label mb-1" style="font-size: 0.9rem;">Ödeme Yöntemi:</label>
-                                <select id="paymentMethod" class="form-select form-select-sm" disabled>
-                                    <option value="pending">Seçiniz</option>
-                                    <option value="nakit">1. Nakit</option>
-                                    <option value="kredi_karti">2. Kredi Kartı</option>
-                                    <option value="cari">3. Cari</option>
-                                    <option value="odenmes">4. Ödenmez</option>
-                                </select>
+                                <div class="d-grid gap-2" style="grid-template-columns: 1fr 1fr;">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="nakit" disabled>1. Nakit</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="kredi_karti" disabled>2. Kredi Kartı</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="cari" disabled>3. Cari</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm payment-btn" data-method="odenmes" disabled>4. Ödenmez</button>
+                                </div>
                             </div>
 
                             <div class="row g-2">

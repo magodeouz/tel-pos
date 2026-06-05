@@ -390,12 +390,21 @@ function renderOrderDetails(order) {
     }
 
     // Payment method & discount
-    const paymentSelect = document.getElementById("paymentMethod");
+    const paymentButtons = document.querySelectorAll(".payment-btn");
     const discountAmountInput = document.getElementById("discountAmount");
     const discountPercentInput = document.getElementById("discountPercent");
 
-    paymentSelect.disabled = order.items.length === 0;
-    paymentSelect.value = order.payment_method || "pending";
+    paymentButtons.forEach(btn => {
+        btn.disabled = order.items.length === 0;
+        if (btn.dataset.method === order.payment_method) {
+            btn.classList.remove("btn-outline-secondary");
+            btn.classList.add("btn-success");
+        } else {
+            btn.classList.remove("btn-success");
+            btn.classList.add("btn-outline-secondary");
+        }
+    });
+
     discountAmountInput.value = order.discount_amount || 0;
     discountPercentInput.value = order.discount_percent || 0;
 
@@ -702,15 +711,18 @@ function startApp() {
         }
     });
 
-    document.getElementById("paymentMethod").addEventListener("change", async () => {
-        if (currentOrderId) {
-            const paymentMethod = document.getElementById("paymentMethod").value;
-            if (paymentMethod !== "pending") {
+    // Payment method buttons
+    document.querySelectorAll(".payment-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            if (currentOrderId) {
+                const paymentMethod = btn.dataset.method;
                 await API.patch(`/api/orders/${currentOrderId}/payment`, {
                     payment_method: paymentMethod,
                 });
+                const order = await API.get(`/api/orders/${currentOrderId}`);
+                renderOrderDetails(order);
             }
-        }
+        });
     });
 }
 
