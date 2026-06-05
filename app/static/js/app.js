@@ -58,8 +58,37 @@ function initWebSocket() {
     };
 }
 
+function playIncomingCallRing() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioContext.currentTime;
+
+        // Create 3 beeps for ring effect
+        for (let i = 0; i < 3; i++) {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.frequency.value = 800 + (i * 100);
+            osc.type = 'sine';
+
+            const startTime = now + (i * 0.5);
+            gain.gain.setValueAtTime(0.3, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.3);
+        }
+    } catch (e) {
+        console.log("Audio context error:", e);
+    }
+}
+
 function handleIncomingCall(data) {
     incomingCallData = data;
+    playIncomingCallRing();
     document.getElementById("callPhone").textContent = data.phone;
 
     const customerInfo = document.getElementById("customerInfo");
