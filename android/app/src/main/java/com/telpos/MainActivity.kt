@@ -47,13 +47,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadSettings() {
+        // Migrate old URLs to new Cloudflare Workers URL
+        val current = PrefsHelper.getServerUrl(this)
+        if (current.contains("vercel.app") || current.contains("lumoria.tr") || current.contains("workers.dev")) {
+            val newUrl = "https://tel-pos.oguzakpinar1997.workers.dev"
+            if (!current.contains("workers.dev")) {
+                PrefsHelper.saveServerUrl(this, newUrl)
+            }
+        }
+
         val serverUrl = PrefsHelper.getServerUrl(this)
         val parts = serverUrl.replace("http://", "").replace("https://", "").split(":")
         if (parts.size >= 2) {
             binding.editIP.setText(parts[0])
             binding.editPort.setText(parts[1])
         } else {
-            binding.editIP.setText("tel-pos.vercel.app")
+            binding.editIP.setText("tel-pos.oguzakpinar1997.workers.dev")
             binding.editPort.setText("443")
         }
     }
