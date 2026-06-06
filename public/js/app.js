@@ -198,10 +198,19 @@ async function loadCategories() {
 
 function renderCategories() {
     const container = document.getElementById("categoriesContainer");
-    container.innerHTML = categories
-        .map(cat => `
-        <div class="category-section">
-            <div class="category-label">${cat.name}</div>
+    const activeCats = categories.filter(c => c.products.some(p => p.active));
+    if (!activeCats.length) { container.innerHTML = '<p class="text-muted">Ürün yok</p>'; return; }
+
+    // Tab bar
+    const tabBar = `<div class="cat-tabs" id="catTabBar">${
+        activeCats.map((cat, i) => `
+            <button class="cat-tab ${i === 0 ? 'active' : ''}" data-cat="${cat.id}">${cat.name}</button>
+        `).join('')
+    }</div>`;
+
+    // Panels
+    const panels = activeCats.map((cat, i) => `
+        <div class="cat-panel ${i === 0 ? 'active' : ''}" id="cat-panel-${cat.id}">
             <div class="product-grid">
                 ${cat.products.filter(p => p.active).map(prod => `
                     <button class="product-btn" data-product-id="${prod.id}" title="${(prod.note || '').replace(/"/g, '&quot;')}">
@@ -212,7 +221,19 @@ function renderCategories() {
                 `).join('')}
             </div>
         </div>
-    `).join("");
+    `).join('');
+
+    container.innerHTML = tabBar + panels;
+
+    // Tab click
+    container.querySelector('#catTabBar').addEventListener('click', e => {
+        const btn = e.target.closest('.cat-tab');
+        if (!btn) return;
+        container.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+        container.querySelectorAll('.cat-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        container.querySelector('#cat-panel-' + btn.dataset.cat)?.classList.add('active');
+    });
 }
 
 async function loadOrders() {
@@ -225,15 +246,27 @@ async function loadOrders() {
     renderOrders(orders);
 }
 
+let allCustomersList = [];
+
 async function loadCustomers() {
-    const customers = await API.get("/api/customers");
-    renderCustomers(customers);
+    allCustomersList = await API.get("/api/customers");
+    renderCustomers(allCustomersList);
+}
+
+function filterCustomers(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) { renderCustomers(allCustomersList); return; }
+    renderCustomers(allCustomersList.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.phone.includes(q) ||
+        (c.address || '').toLowerCase().includes(q)
+    ));
 }
 
 function renderCustomers(customers) {
     const container = document.getElementById("customersList");
     if (customers.length === 0) {
-        container.innerHTML = '<p class="text-muted">Müşteri yok</p>';
+        container.innerHTML = '<div class="empty-state" style="height:60px"><span>Müşteri bulunamadı</span></div>';
         return;
     }
 

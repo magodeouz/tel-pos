@@ -140,6 +140,37 @@ body {
   background: #fafafa;
 }
 
+/* ── Category tabs ──────────────────────────────────────── */
+.cat-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 6px 8px 0;
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.cat-tab {
+  border: none;
+  background: none;
+  padding: 5px 10px;
+  font-size: .73rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.cat-tab:hover { color: var(--accent); background: #eff6ff; }
+.cat-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: #fff; }
+
+.cat-panel { display: none; padding: 8px; overflow-y: auto; flex: 1; }
+.cat-panel.active { display: block; }
+
 /* ── Left: Orders ───────────────────────────────────────── */
 .panel-left { grid-row: 1; grid-column: 1; }
 
