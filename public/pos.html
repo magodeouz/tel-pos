@@ -20,7 +20,7 @@
     <span id="currentTime" class="time-display"></span>
     <span id="wsStatus" class="ws-dot" title="Bağlantı durumu"></span>
     <button class="nav-btn" onclick="window.open('/management','_blank')">⚙ Yönetim</button>
-    <span id="usernameDisplay" style="color:#94a3b8;font-size:.8rem;"></span>
+    <span id="usernameDisplay" style="color:#94a3b8;font-size:.8rem;cursor:pointer;" onclick="openChangePassword()" title="Şifre değiştir 🔑"></span>
     <button class="nav-btn danger" id="logoutBtn">Çıkış</button>
   </nav>
 
@@ -252,6 +252,33 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
           <button type="button" class="btn btn-primary" id="saveCustomerBtn">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🔑 Şifre Değiştir</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" style="font-size:.82rem;font-weight:600;">Mevcut Şifre</label>
+            <input type="password" class="form-control" id="currentPassword" placeholder="••••••">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="font-size:.82rem;font-weight:600;">Yeni Şifre</label>
+            <input type="password" class="form-control" id="newPassword" placeholder="Min. 6 karakter">
+          </div>
+          <div id="pwChangeError" style="color:#ef4444;font-size:.8rem;display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+          <button type="button" class="btn btn-primary btn-sm" id="savePasswordBtn">Kaydet</button>
         </div>
       </div>
     </div>

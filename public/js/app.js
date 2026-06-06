@@ -20,6 +20,39 @@ function logout() {
     window.location.href = '/';
 }
 
+function openChangePassword() {
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('pwChangeError').style.display = 'none';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('changePasswordModal')).show();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('savePasswordBtn')?.addEventListener('click', async () => {
+        const current = document.getElementById('currentPassword').value;
+        const next = document.getElementById('newPassword').value;
+        const errEl = document.getElementById('pwChangeError');
+        errEl.style.display = 'none';
+
+        if (!current || !next) { errEl.textContent = 'Her iki alanı da doldurun.'; errEl.style.display = 'block'; return; }
+        if (next.length < 6) { errEl.textContent = 'Yeni şifre en az 6 karakter olmalı.'; errEl.style.display = 'block'; return; }
+
+        const res = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ current_password: current, new_password: next }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
+            alert('✓ Şifre başarıyla değiştirildi.');
+        } else {
+            errEl.textContent = data.detail || 'Hata oluştu.';
+            errEl.style.display = 'block';
+        }
+    });
+});
+
 const API = {
     async get(url) {
         const res = await fetch(url, { headers: authHeaders() });
