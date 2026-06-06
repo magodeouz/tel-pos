@@ -962,16 +962,16 @@ function updateOrderTotal(order) {
     const totalDiscount = discountAmount + percentDiscount;
     const finalTotal = Math.max(0, subtotal - totalDiscount);
 
-    document.getElementById("orderSubtotal").textContent = `${subtotalfmt()} TL`;
+    document.getElementById("orderSubtotal").textContent = `${fmt(subtotal)} TL`;
 
     if (totalDiscount > 0) {
         document.getElementById("discountDisplay").style.display = "";
-        document.getElementById("discountDisplayValue").textContent = `-${totalDiscountfmt()} TL`;
+        document.getElementById("discountDisplayValue").textContent = `-${fmt(totalDiscount)} TL`;
     } else {
         document.getElementById("discountDisplay").style.display = "none";
     }
 
-    document.getElementById("orderTotal").textContent = `${finalTotalfmt()} TL`;
+    document.getElementById("orderTotal").textContent = `${fmt(finalTotal)} TL`;
 }
 
 let noteUpdateTimeout;
