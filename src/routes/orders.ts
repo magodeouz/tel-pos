@@ -157,6 +157,13 @@ app.patch('/:id/note', async (c) => {
   return c.json({ ok: true, note })
 })
 
+app.patch('/:id/customer', async (c) => {
+  const db = getDb(c.env.DB)
+  const { customer_id } = await c.req.json()
+  await db.update(orders).set({ customerId: customer_id }).where(eq(orders.id, Number(c.req.param('id'))))
+  return c.json({ ok: true })
+})
+
 app.patch('/:id/payment', async (c) => {
   const db = getDb(c.env.DB)
   const { payment_method } = await c.req.json()

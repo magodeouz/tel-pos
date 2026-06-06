@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { eq } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import { getDb } from '../db'
-import { customers } from '../schema'
+import { customers, orders, orderItems, products } from '../schema'
 import type { Env } from '../worker'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -53,6 +53,37 @@ app.delete('/:id', async (c) => {
   const db = getDb(c.env.DB)
   await db.delete(customers).where(eq(customers.id, Number(c.req.param('id'))))
   return c.json({ ok: true })
+})
+
+// Customer detail: info + all orders + cari balance
+app.get('/:id/detail', async (c) => {
+  const db = getDb(c.env.DB)
+  const id = Number(c.req.param('id'))
+  const [cust] = await db.select().from(customers).where(eq(customers.id, id)).limit(1)
+  if (!cust) return c.json({ detail: 'Müşteri bulunamadı' }, 404)
+
+  const custOrders = await db.select().from(orders).where(eq(orders.customerId, id)).orderBy(desc(orders.createdAt))
+  const items = await db.select({
+    orderId: orderItems.orderId, quantity: orderItems.quantity,
+    unitPrice: orderItems.unitPrice, name: products.name,
+  }).from(orderItems).innerJoin(products, eq(orderItems.productId, products.id))
+
+  const getTotal = (orderId: number) =>
+    items.filter(i => i.orderId === orderId).reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+
+  const ordersWithTotal = custOrders.map(o => ({
+    id: o.id, status: o.status, payment_method: o.paymentMethod,
+    created_at: o.createdAt, note: o.note,
+    total: getTotal(o.id),
+    items: items.filter(i => i.orderId === o.id).map(i => ({ name: i.name, quantity: i.quantity, unit_price: i.unitPrice })),
+  }))
+
+  // Cari balance = sum of paid orders with payment_method=cari
+  const cariBalance = ordersWithTotal
+    .filter(o => o.status === 'paid' && o.payment_method === 'cari')
+    .reduce((s, o) => s + o.total, 0)
+
+  return c.json({ ...normalize(cust), orders: ordersWithTotal, cari_balance: cariBalance })
 })
 
 export default app

@@ -20,6 +20,111 @@ function logout() {
     window.location.href = '/';
 }
 
+function switchToOrdersTab() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('.tab-btn')?.classList.add('active');
+    document.getElementById('orders-panel')?.classList.add('active');
+}
+
+// Cari customer picker
+let _cariOrderId = null;
+function openCariCustomerPicker(orderId) {
+    _cariOrderId = orderId;
+    document.getElementById('cariSearch').value = '';
+    renderCariCustomerList(allCustomersList);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('cariCustomerModal')).show();
+}
+
+function renderCariCustomerList(list) {
+    const el = document.getElementById('cariCustomerList');
+    if (!list.length) { el.innerHTML = '<p class="text-muted" style="font-size:.82rem;text-align:center;padding:12px;">Müşteri bulunamadı</p>'; return; }
+    el.innerHTML = list.map(c => `
+        <div class="customer-card" onclick="selectCariCustomer(${c.id})" style="cursor:pointer;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div class="customer-card-name">${c.name}</div>
+                    <div class="customer-card-phone">${c.phone}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function selectCariCustomer(customerId) {
+    if (!_cariOrderId) return;
+    const orderId = _cariOrderId;
+    _cariOrderId = null;
+
+    bootstrap.Modal.getInstance(document.getElementById('cariCustomerModal')).hide();
+
+    // Link customer to order if not already linked, then set cari payment
+    currentOrderId = null;
+    resetOrderPanel();
+    switchToOrdersTab();
+    printOrder(orderId);
+
+    await Promise.all([
+        API.patch(`/api/orders/${orderId}/payment`, { payment_method: 'cari' }),
+        API.patch(`/api/orders/${orderId}/status`, { status: 'paid' }),
+    ]);
+    // Also link customer to order
+    await fetch(`/api/orders/${orderId}/customer`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ customer_id: customerId }),
+    });
+
+    loadOrders();
+    loadAllOrders(1);
+}
+
+async function openCustomerDetail(customerId) {
+    const d = await API.get(`/api/customers/${customerId}/detail`);
+    if (!d || !d.id) return;
+
+    document.getElementById('custDetailName').textContent = d.name;
+    document.getElementById('custDetailPhone').textContent = d.phone;
+    document.getElementById('custDetailAddress').textContent = d.address || '—';
+    document.getElementById('custDetailNote').textContent = d.note || '—';
+
+    const cariEl = document.getElementById('custDetailCari');
+    if (d.cari_balance > 0) {
+        cariEl.style.display = 'block';
+        document.getElementById('custDetailCariAmount').textContent = d.cari_balance.toFixed(2) + ' ₺';
+    } else {
+        cariEl.style.display = 'none';
+    }
+
+    const statusMap = { open: 'Açık', paid: 'Ödendi', cancelled: 'İptal' };
+    const payMap = { nakit: '💵 Nakit', kredi_karti: '💳 Kart', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: '—' };
+    const orders = d.orders || [];
+
+    document.getElementById('custDetailOrders').innerHTML = orders.length === 0
+        ? '<p class="text-muted" style="font-size:.8rem;">Sipariş yok</p>'
+        : orders.slice(0, 20).map(o => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:.8rem;">
+                <div>
+                    <strong>#${o.id}</strong>
+                    <span style="color:#64748b;margin-left:6px;">${new Date(o.created_at).toLocaleDateString('tr-TR')}</span>
+                    <span style="margin-left:6px;">${payMap[o.payment_method] || ''}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <strong>${o.total.toFixed(2)} ₺</strong>
+                    <span class="status-badge status-${o.status}">${statusMap[o.status] || o.status}</span>
+                </div>
+            </div>
+        `).join('');
+
+    // Store id for "Sipariş Aç" button
+    document.getElementById('custDetailOrderBtn').onclick = () => {
+        bootstrap.Modal.getInstance(document.getElementById('customerDetailModal')).hide();
+        createOrderForCustomer(d.id, d.name);
+    };
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerDetailModal')).show();
+}
+
 let _editCustomerId = null;
 
 async function openEditCustomer(customerId) {
@@ -388,14 +493,18 @@ function renderCustomers(customers) {
     container.innerHTML = customers
         .map(c => `
         <div class="customer-card" onclick="createOrderForCustomer(${c.id}, '${c.name.replace(/'/g,"\\'")}')">
-            <div class="customer-card-top" style="display:flex;align-items:center;gap:4px;">
-                <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:4px;">
+                <div style="flex:1;min-width:0;">
                     <div class="customer-card-name">${c.name}</div>
                     <div class="customer-card-phone">${c.phone}</div>
                     ${c.address ? `<div class="customer-card-address">${c.address}</div>` : ''}
                 </div>
-                <button class="order-item-del" style="font-size:.8rem;opacity:.7;flex-shrink:0;"
-                    onclick="event.stopPropagation(); openEditCustomer(${c.id})" title="Düzenle">✏️</button>
+                <div style="display:flex;gap:3px;flex-shrink:0;">
+                    <button class="order-item-del" style="font-size:.8rem;"
+                        onclick="event.stopPropagation(); openCustomerDetail(${c.id})" title="Detay">👁</button>
+                    <button class="order-item-del" style="font-size:.8rem;"
+                        onclick="event.stopPropagation(); openEditCustomer(${c.id})" title="Düzenle">✏️</button>
+                </div>
             </div>
         </div>
     `).join("");
@@ -410,11 +519,7 @@ async function createOrderForCustomer(customerId, customerName) {
     renderOrderDetails(order);
     loadOrders();
     } finally { isCreatingOrder = false; }
-    // Switch to orders tab
-document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-document.querySelector('.tab-btn')?.classList.add('active');
-document.getElementById('orders-panel')?.classList.add('active');
+    switchToOrdersTab();
 }
 
 function renderOrders(orders) {
@@ -943,16 +1048,19 @@ function startApp() {
         btn.addEventListener("click", async () => {
             if (!currentOrderId) return;
             const paymentMethod = btn.dataset.method;
+
+            // Cari: require customer selection first
+            if (paymentMethod === 'cari') {
+                openCariCustomerPicker(currentOrderId);
+                return;
+            }
+
             const orderId = currentOrderId;
 
             // Clear UI immediately — don't wait for server
             currentOrderId = null;
             resetOrderPanel();
-            // Switch to orders tab
-document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-document.querySelector('.tab-btn')?.classList.add('active');
-document.getElementById('orders-panel')?.classList.add('active');
+            switchToOrdersTab();
 
             // Print immediately
             printOrder(orderId);

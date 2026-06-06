@@ -49,8 +49,18 @@
           <div id="customersList"><p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:20px;">Yükleniyor...</p></div>
         </div>
       </div>
-      <div class="panel-footer">
-        <button class="new-order-btn" id="newOrderBtn">+ Yeni Sipariş</button>
+      <div class="panel-footer" style="display:flex;gap:6px;">
+        <button class="new-order-btn" id="newOrderBtn" style="flex:1;">+ Yeni Sipariş</button>
+        <button class="new-order-btn" id="addCustomerBtn"
+          style="flex:0 0 auto;background:#3b82f6;padding:9px 12px;font-size:.78rem;"
+          onclick="document.getElementById('customerPhone').value='';
+                   document.getElementById('customerName').value='';
+                   document.getElementById('customerSurname').value='';
+                   document.getElementById('customerAddress').value='';
+                   document.getElementById('customerNote').value='';
+                   bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal')).show();">
+          + Müşteri
+        </button>
       </div>
     </div>
 
@@ -253,6 +263,70 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
           <button type="button" class="btn btn-primary" id="saveCustomerBtn">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Detail Modal -->
+  <div class="modal fade" id="customerDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">👤 Müşteri Detayı</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">İsim</div>
+              <div id="custDetailName" style="font-weight:700;font-size:.95rem;"></div>
+            </div>
+            <div class="col-6">
+              <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Telefon</div>
+              <div id="custDetailPhone" style="font-weight:600;"></div>
+            </div>
+            <div class="col-6">
+              <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Adres</div>
+              <div id="custDetailAddress" style="font-size:.85rem;"></div>
+            </div>
+            <div class="col-6">
+              <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Not</div>
+              <div id="custDetailNote" style="font-size:.85rem;color:#dc2626;"></div>
+            </div>
+          </div>
+          <!-- Cari balance -->
+          <div id="custDetailCari" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+            <div style="font-size:.72rem;font-weight:700;color:#92400e;text-transform:uppercase;">📋 Cari Bakiye (Toplam Borç)</div>
+            <div id="custDetailCariAmount" style="font-size:1.4rem;font-weight:800;color:#92400e;"></div>
+          </div>
+          <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;">Sipariş Geçmişi</div>
+          <div id="custDetailOrders" style="max-height:260px;overflow-y:auto;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
+          <button type="button" class="btn btn-primary btn-sm" id="custDetailOrderBtn">🛒 Sipariş Aç</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cari Customer Picker Modal -->
+  <div class="modal fade" id="cariCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header" style="background:#d97706;color:#fff;">
+          <h5 class="modal-title">📋 Cari Müşteri Seç</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" style="padding:12px;">
+          <input type="search" id="cariSearch" placeholder="🔍 İsim veya telefon..."
+            oninput="renderCariCustomerList(allCustomersList.filter(c=>c.name.toLowerCase().includes(this.value.toLowerCase())||c.phone.includes(this.value)))"
+            style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:.82rem;outline:none;font-family:inherit;margin-bottom:8px;">
+          <div id="cariCustomerList" style="max-height:320px;overflow-y:auto;"></div>
+        </div>
+        <div class="modal-footer" style="padding:8px 12px;">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
         </div>
       </div>
     </div>
