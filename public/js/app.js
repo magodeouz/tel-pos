@@ -415,6 +415,7 @@ function playIncomingCallRing() {
 }
 
 function handleIncomingCall(data) {
+  try {
     _modalOpen = true;
     incomingCallData = data;
     playIncomingCallRing();
@@ -486,6 +487,11 @@ function handleIncomingCall(data) {
     }, { once: true });
 
     modal.show();
+  } catch (e) {
+    // If anything fails, never leave _modalOpen stuck — flush queue safety net
+    console.error('handleIncomingCall error:', e);
+    _modalOpen = false;
+  }
 }
 
 async function loadCategories() {
@@ -674,8 +680,7 @@ function renderAllOrders(orders) {
                                     ? `<span class="status-badge status-open">📋 Cari</span>`
                                     : order.status === 'paid'
                                         ? `<span class="status-badge status-paid">${getPaymentLabel(order.payment_method)}</span>`
-                                        : `<span class="status-badge status-open">Açık</span>
-                                           <br><button class="action-btn enabled print" style="padding:2px 6px;font-size:.68rem;border-radius:4px;margin-top:3px;" data-mark-paid="${order.id}">✓ Ödendi</button>`
+                                        : `<span class="status-badge status-open">Açık</span>`
                             }
                         </td>
                         <td style="text-align:center;">
@@ -1110,7 +1115,8 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 function startApp() {
     initWebSocket();
     // Periodic safety-net poll — catches anything WS missed (sleep, network blip)
-    setInterval(pollIncomingCalls, 30000);
+    setInterval(pollIncomingCalls, 8000);
+    pollIncomingCalls(); // also poll once on startup
     loadCategories();
     loadOrders();
     loadCustomers();
