@@ -707,8 +707,6 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 
 function startApp() {
     initWebSocket();
-    // Fallback polling in case WebSocket misses a message
-    setInterval(pollIncomingCalls, 5000);
     loadCategories();
     loadOrders();
     loadCustomers();
