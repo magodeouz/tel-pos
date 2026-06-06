@@ -291,7 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const API = {
     async get(url) {
-        const res = await fetch(url, { headers: authHeaders() });
+        // no-store: never serve a stale cached list after a mutation
+        const res = await fetch(url, { headers: authHeaders(), cache: 'no-store' });
         if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
@@ -299,6 +300,7 @@ const API = {
         const res = await fetch(url, {
             method: "POST",
             headers: authHeaders(),
+            cache: 'no-store',
             body: JSON.stringify(data),
         });
         if (res.status === 401) { logout(); return {}; }
@@ -308,6 +310,7 @@ const API = {
         const res = await fetch(url, {
             method: "PUT",
             headers: authHeaders(),
+            cache: 'no-store',
             body: JSON.stringify(data),
         });
         if (res.status === 401) { logout(); return {}; }
@@ -317,13 +320,14 @@ const API = {
         const res = await fetch(url, {
             method: "PATCH",
             headers: authHeaders(),
+            cache: 'no-store',
             body: JSON.stringify(data),
         });
         if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async delete(url) {
-        const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
+        const res = await fetch(url, { method: "DELETE", headers: authHeaders(), cache: 'no-store' });
         if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
@@ -367,7 +371,7 @@ async function pollIncomingCalls() {
     try {
         const token = localStorage.getItem('access_token');
         if (!token) return;
-        const res = await fetch("/api/incoming-call/pending", { headers: authHeaders() });
+        const res = await fetch("/api/incoming-call/pending", { headers: authHeaders(), cache: 'no-store' });
         if (!res.ok) return;
         const calls = await res.json();
         if (!Array.isArray(calls)) return;

@@ -13,7 +13,7 @@ function logout() {
 
 const API = {
     async get(url) {
-        const res = await fetch(url, { headers: authHeaders() });
+        const res = await fetch(url, { headers: authHeaders(), cache: 'no-store' });
         if (res.status === 401) { logout(); return {}; }
         return res.json();
     },

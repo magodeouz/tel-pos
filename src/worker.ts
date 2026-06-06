@@ -25,6 +25,14 @@ const app = new Hono<{ Bindings: Env }>()
 
 app.use('*', cors())
 
+// Never cache API responses — stale lists were the #1 "didn't update" bug.
+// Browsers (esp. mobile) heuristically cache GETs that lack Cache-Control.
+app.use('/api/*', async (c, next) => {
+  await next()
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  c.header('Pragma', 'no-cache')
+})
+
 // ── WebSocket ─────────────────────────────────────────────────
 app.get('/ws', (c) => {
   const hub = c.env.CALL_HUB.get(c.env.CALL_HUB.idFromName('main'))
