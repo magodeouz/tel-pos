@@ -230,7 +230,7 @@ function renderCustomers(customers) {
 }
 
 async function createOrderForCustomer(customerId, customerName) {
-    const order = await API.post("/api/orders", { customer_id: customerId });
+    const order = await API.post("/api/orders/", { customer_id: customerId });
     currentOrderId = order.id;
     renderOrderDetails(order);
     loadOrders();
@@ -558,7 +558,7 @@ function checkPrinterStatus() {
 
 // Event listeners
 document.getElementById("newOrderBtn").addEventListener("click", async () => {
-    const order = await API.post("/api/orders", { customer_id: null });
+    const order = await API.post("/api/orders/", { customer_id: null });
     currentOrderId = order.id;
     renderOrderDetails(order);
     loadOrders();
@@ -608,7 +608,7 @@ document.getElementById("createOrderFromCallBtn").addEventListener("click", asyn
             return;
         }
 
-        const order = await API.post("/api/orders", { customer_id: customerId });
+        const order = await API.post("/api/orders/", { customer_id: customerId });
         currentOrderId = order.id;
         renderOrderDetails(order);
         loadOrders();
@@ -669,7 +669,7 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
     // If coming from incoming call, create order
     if (window.createOrderAfterCustomer) {
         window.createOrderAfterCustomer = false;
-        const order = await API.post("/api/orders", { customer_id: customerData.id });
+        const order = await API.post("/api/orders/", { customer_id: customerData.id });
         currentOrderId = order.id;
         renderOrderDetails(order);
         loadOrders();

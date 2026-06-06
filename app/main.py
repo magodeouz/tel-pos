@@ -14,7 +14,7 @@ from .security import get_current_user
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Tel-POS", redirect_slashes=False)
+app = FastAPI(title="Tel-POS")
 
 # Public routes (no auth required)
 app.include_router(auth.router)
