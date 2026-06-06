@@ -394,6 +394,21 @@ async function selectOrder(orderId) {
     renderOrderDetails(order);
 }
 
+function resetOrderPanel() {
+    document.getElementById("orderItems").innerHTML = '<div class="empty-state"><span class="empty-icon">🛒</span><span>Sol panelden sipariş seçin<br>veya yeni sipariş açın</span></div>';
+    document.getElementById("orderTitle").textContent = "Sipariş Seçin";
+    document.getElementById("orderTotal").textContent = "0.00";
+    document.getElementById("orderSubtotal").textContent = "0.00";
+    document.getElementById("discountAmount").value = "";
+    document.getElementById("discountPercent").value = "";
+    document.getElementById("discountDisplay").style.display = "none";
+    document.getElementById("orderNote").value = "";
+    document.getElementById("orderNote").disabled = true;
+    document.querySelectorAll(".payment-btn").forEach(b => b.classList.remove("enabled"));
+    document.getElementById("printBtn").classList.remove("enabled");
+    document.getElementById("cancelBtn").classList.remove("enabled");
+}
+
 function renderOrderDetails(order) {
     const itemsDiv = document.getElementById("orderItems");
     const titleDiv = document.getElementById("orderTitle");
@@ -571,17 +586,13 @@ document.getElementById("printBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("cancelBtn").addEventListener("click", async () => {
-    if (currentOrderId) {
-        if (confirm("Siparişi iptal etmek istediğinizden emin misiniz?")) {
-            await API.patch(`/api/orders/${currentOrderId}/status`, { status: "cancelled" });
-            currentOrderId = null;
-            loadOrders();
-            document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
-            document.getElementById("orderTitle").textContent = "Sipariş Seçin";
-            document.getElementById("orderTotal").textContent = "0.00 TL";
-            document.getElementById("orderNote").value = "";
-            document.getElementById("orderNote").disabled = true;
-        }
+    if (currentOrderId && confirm("Siparişi iptal etmek istediğinizden emin misiniz?")) {
+        const orderId = currentOrderId;
+        currentOrderId = null;
+        resetOrderPanel();
+        await API.patch(`/api/orders/${orderId}/status`, { status: "cancelled" });
+        loadOrders();
+        loadAllOrders(1);
     }
 });
 
@@ -756,9 +767,7 @@ function startApp() {
 
             // Clear UI immediately — don't wait for server
             currentOrderId = null;
-            document.getElementById("orderItems").innerHTML = '<p class="text-muted">Tamamlandı!</p>';
-            document.getElementById("orderTitle").textContent = "Sipariş Seçin";
-            document.getElementById("orderTotal").textContent = "0.00 TL";
+            resetOrderPanel();
             // Switch to orders tab
 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
