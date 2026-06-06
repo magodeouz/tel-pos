@@ -940,14 +940,16 @@ async function addProductToOrder(productId) {
 
     const order = await API.get(`/api/orders/${currentOrderId}`);
     renderOrderDetails(order);
-    loadOrders(); // fire-and-forget, UI already updated
+    loadOrders();
+    loadAllOrders(allOrdersPage);
 }
 
 async function removeItem(orderId, itemId) {
     await API.delete(`/api/orders/${orderId}/items/${itemId}`);
     const order = await API.get(`/api/orders/${orderId}`);
     renderOrderDetails(order);
-    loadOrders(); // fire-and-forget
+    loadOrders();
+    loadAllOrders(allOrdersPage);
 }
 
 function printOrder(orderId) {
@@ -1040,6 +1042,7 @@ document.getElementById("newOrderBtn").addEventListener("click", async (e) => {
         currentOrderId = order.id;
         renderOrderDetails(order);
         loadOrders();
+        loadAllOrders(1);
     } finally {
         btn.disabled = false;
         btn.textContent = "+ Yeni Sipariş";
