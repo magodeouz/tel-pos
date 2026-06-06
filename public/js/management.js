@@ -237,8 +237,9 @@ function renderSalesReport(data) {
     tbody.innerHTML = data.daily_breakdown.map(day => {
         const avgDayOrder = day.order_count > 0 ? day.total_amount / day.order_count : 0;
         return `
-            <tr>
-                <td>${formatDate(day.date)}</td>
+            <tr style="cursor:pointer;" title="Gün detayını ve siparişleri gör"
+                onclick="window.open('/api/reports/day-close?date=${day.date}','_blank')">
+                <td>${formatDate(day.date)} 🔍</td>
                 <td>${day.order_count}</td>
                 <td>${day.total_amount.toFixed(2)} TL</td>
                 <td>${avgDayOrder.toFixed(2)} TL</td>

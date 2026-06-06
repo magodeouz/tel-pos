@@ -82,10 +82,10 @@ app.get('/customer-spending', async (c) => {
 app.get('/day-close', async (c) => {
   const db = getDb(c.env.DB)
 
-  // "Today" = Istanbul day (UTC+3, no DST). DB stores UTC.
-  // Get Istanbul's current date, then its [00:00, 23:59:59] as UTC instants.
-  const istNow = new Date(Date.now() + 3 * 3600 * 1000)
-  const istDateStr = istNow.toISOString().slice(0, 10) // YYYY-MM-DD in Istanbul
+  // Day = Istanbul day (UTC+3, no DST). DB stores UTC.
+  // ?date=YYYY-MM-DD picks a specific Istanbul day; otherwise use today.
+  const istDateStr = c.req.query('date')
+    || new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
   const startUtc = new Date(istDateStr + 'T00:00:00+03:00')
   const endUtc = new Date(istDateStr + 'T23:59:59+03:00')
 
@@ -133,16 +133,35 @@ app.get('/day-close', async (c) => {
   }
   const topProds = Object.values(prodMap).sort((a, b) => b.rev - a.rev).slice(0, 10)
 
+  // That day's individual orders (chronological), with customer names.
+  const allCustomers = await db.select().from(customers)
+  const custMap: Record<number, typeof customers.$inferSelect> = {}
+  for (const cu of allCustomers) custMap[cu.id] = cu
+  const payShort: Record<string, string> = { nakit: 'Nakit', kredi_karti: 'K.Kartı', cari: 'Cari', odenmes: 'Ödenmez' }
+  const dayOrders = [...todayOrders].sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
+
   const restName  = c.env.RESTAURANT_NAME  ?? 'EFE BÜFE'
   const restAddr  = c.env.RESTAURANT_ADDRESS ?? ''
   const restPhone = c.env.RESTAURANT_PHONE  ?? ''
-  const dateStr   = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric', timeZone: 'Europe/Istanbul' })
+  const dateStr   = new Date(istDateStr + 'T12:00:00+03:00')
+    .toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric', timeZone: 'Europe/Istanbul' })
 
   const payRows = Object.values(byPayment).filter(p => p.count > 0)
     .map(p => `<tr><td>${p.label}</td><td>${p.count}</td><td>${p.total.toFixed(2)} ₺</td></tr>`).join('')
 
   const prodRows = topProds
     .map(p => `<tr><td>${p.name}</td><td>${p.qty}</td><td>${p.rev.toFixed(2)} ₺</td></tr>`).join('')
+
+  const orderRows = dayOrders.map(o => {
+    const t = o.createdAt
+      ? new Date(o.createdAt.replace(' ', 'T') + 'Z').toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul' })
+      : ''
+    const cust = o.customerId && custMap[o.customerId] ? custMap[o.customerId].name : ''
+    const st = o.status === 'cancelled' ? 'İptal'
+      : o.status === 'open' ? 'Açık'
+      : (payShort[o.paymentMethod ?? 'nakit'] || 'Ödendi')
+    return `<tr><td>${t}</td><td>#${o.id}${cust ? ' ' + cust : ''}</td><td>${getTotal(o.id).toFixed(2)} ₺</td><td>${st}</td></tr>`
+  }).join('')
 
   return c.html(`<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8"><title>Gün Kapanış — ${dateStr}</title>
@@ -179,6 +198,8 @@ ${payRows ? `<h3>Ödeme Yöntemleri</h3>
 <table><tr><td><b>Yöntem</b></td><td><b>Adet</b></td><td><b>Tutar</b></td></tr>${payRows}</table>` : ''}
 ${prodRows ? `<h3>En Çok Satılan Ürünler</h3>
 <table><tr><td><b>Ürün</b></td><td><b>Adet</b></td><td><b>Tutar</b></td></tr>${prodRows}</table>` : ''}
+${orderRows ? `<h3>O Günün Siparişleri (${dayOrders.length})</h3>
+<table><tr><td><b>Saat</b></td><td><b>#</b></td><td><b>Tutar</b></td><td><b>Durum</b></td></tr>${orderRows}</table>` : ''}
 <hr>
 <p class="center" style="font-size:10px">Rapor: ${new Date().toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul' })}</p>
 <div class="no-print">

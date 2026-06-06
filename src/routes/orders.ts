@@ -1,10 +1,22 @@
 import { Hono } from 'hono'
-import { eq, desc, and, sql } from 'drizzle-orm'
+import { eq, desc, and, gte, lte, sql } from 'drizzle-orm'
 import { getDb } from '../db'
 import { orders, orderItems, products, customers } from '../schema'
 import type { Env } from '../worker'
 
 const app = new Hono<{ Bindings: Env }>()
+
+// Istanbul (UTC+3, no DST) day window as UTC "YYYY-MM-DD HH:MM:SS" strings,
+// matching how createdAt is stored. Pass a YYYY-MM-DD date, or omit for today.
+function istanbulDayWindow(dateStr?: string) {
+  const ist = dateStr || new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
+  const toDb = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ')
+  return {
+    date: ist,
+    start: toDb(new Date(ist + 'T00:00:00+03:00')),
+    end: toDb(new Date(ist + 'T23:59:59+03:00')),
+  }
+}
 
 async function buildOrder(db: ReturnType<typeof getDb>, order: typeof orders.$inferSelect) {
   const items = await db.select({
@@ -44,7 +56,15 @@ app.get('/list/paginated', async (c) => {
   const perPage = Number(c.req.query('per_page') ?? 10)
   const status = c.req.query('status')
 
-  const where = status ? eq(orders.status, status) : undefined
+  // Default to the current Istanbul day; ?date=YYYY-MM-DD for a specific day,
+  // ?all=1 to disable date filtering entirely.
+  const win = c.req.query('all') === '1' ? null : istanbulDayWindow(c.req.query('date'))
+  const conds = [
+    status ? eq(orders.status, status) : undefined,
+    win ? gte(orders.createdAt, win.start) : undefined,
+    win ? lte(orders.createdAt, win.end) : undefined,
+  ].filter(Boolean)
+  const where = conds.length ? and(...conds) : undefined
   const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(orders).where(where)
   const total = Number(count)
   const pages = Math.max(1, Math.ceil(total / perPage))
