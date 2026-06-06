@@ -41,10 +41,9 @@ class MainActivity : AppCompatActivity() {
         if (time == 0L) return
 
         val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(time))
-        val statusText = if (success) "✓ $phone ($timeStr)" else "✗ $phone — gönderilemedi ($timeStr)"
-        try {
-            binding.textLastCall?.text = statusText
-        } catch (e: Exception) { /* view might not exist in older layout */ }
+        val statusText = if (success) "✓ $phone ($timeStr) gönderildi"
+                         else "✗ $phone ($timeStr) gönderilemedi!"
+        Toast.makeText(this, statusText, Toast.LENGTH_LONG).show()
     }
 
     private fun requestPhonePermission() {
