@@ -678,7 +678,7 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 
 function startApp() {
     pollIncomingCalls();
-    setInterval(pollIncomingCalls, 1000);
+    setInterval(pollIncomingCalls, 2000);
     loadCategories();
     loadOrders();
     loadCustomers();
