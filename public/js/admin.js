@@ -1,26 +1,43 @@
+function authHeaders(extra = {}) {
+    const token = localStorage.getItem('access_token');
+    return token
+        ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, ...extra }
+        : { "Content-Type": "application/json", ...extra };
+}
+
+function logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('username');
+    window.location.href = '/';
+}
+
 const API = {
     async get(url) {
-        const res = await fetch(url);
+        const res = await fetch(url, { headers: authHeaders() });
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async post(url, data) {
         const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify(data),
         });
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async put(url, data) {
         const res = await fetch(url, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify(data),
         });
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async delete(url) {
-        const res = await fetch(url, { method: "DELETE" });
+        const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
 };
