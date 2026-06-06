@@ -2,7 +2,6 @@ package com.telpos
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -11,6 +10,9 @@ import androidx.core.content.ContextCompat
 import com.telpos.databinding.ActivityMainBinding
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -23,22 +25,36 @@ class MainActivity : AppCompatActivity() {
 
         requestPhonePermission()
         loadSettings()
+        showLastCallStatus()
 
-        binding.buttonSave.setOnClickListener {
-            saveSettings()
-        }
+        binding.buttonSave.setOnClickListener { saveSettings() }
+        binding.buttonTest.setOnClickListener { testConnection() }
+    }
 
-        binding.buttonTest.setOnClickListener {
-            testConnection()
-        }
+    override fun onResume() {
+        super.onResume()
+        showLastCallStatus()
+    }
+
+    private fun showLastCallStatus() {
+        val (phone, success, time) = PrefsHelper.getLastCallInfo(this)
+        if (time == 0L) return
+
+        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(time))
+        val statusText = if (success) "✓ $phone ($timeStr)" else "✗ $phone — gönderilemedi ($timeStr)"
+        try {
+            binding.textLastCall?.text = statusText
+        } catch (e: Exception) { /* view might not exist in older layout */ }
     }
 
     private fun requestPhonePermission() {
         val permissions = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+            != PackageManager.PERMISSION_GRANTED) {
             permissions.add(Manifest.permission.READ_PHONE_STATE)
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG)
+            != PackageManager.PERMISSION_GRANTED) {
             permissions.add(Manifest.permission.READ_CALL_LOG)
         }
         if (permissions.isNotEmpty()) {
@@ -47,24 +63,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadSettings() {
-        // Migrate old URLs to new Cloudflare Workers URL
-        val current = PrefsHelper.getServerUrl(this)
-        if (current.contains("vercel.app") || current.contains("lumoria.tr") || current.contains("workers.dev")) {
-            val newUrl = "https://tel-pos.oguzakpinar1997.workers.dev"
-            if (!current.contains("workers.dev")) {
-                PrefsHelper.saveServerUrl(this, newUrl)
-            }
+        var current = PrefsHelper.getServerUrl(this)
+
+        // Migrate old URLs
+        if (current.contains("vercel.app") || current.contains("lumoria.tr")) {
+            current = "https://tel-pos.oguzakpinar1997.workers.dev"
+            PrefsHelper.saveServerUrl(this, current)
         }
 
-        val serverUrl = PrefsHelper.getServerUrl(this)
-        val parts = serverUrl.replace("http://", "").replace("https://", "").split(":")
-        if (parts.size >= 2) {
-            binding.editIP.setText(parts[0])
-            binding.editPort.setText(parts[1])
-        } else {
-            binding.editIP.setText("tel-pos.oguzakpinar1997.workers.dev")
-            binding.editPort.setText("443")
-        }
+        // Parse URL → show host and port separately
+        val withoutProto = current.removePrefix("https://").removePrefix("http://")
+        val parts = withoutProto.split(":")
+        binding.editIP.setText(parts[0])
+        binding.editPort.setText(if (parts.size > 1) parts[1] else "443")
     }
 
     private fun saveSettings() {
@@ -77,9 +88,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val protocol = if (port == "443") "https" else "http"
-        val serverUrl = "$protocol://$ip:$port"
+        // Don't include :443 for standard HTTPS — keeps URL clean
+        val serverUrl = if (port == "443") "$protocol://$ip" else "$protocol://$ip:$port"
         PrefsHelper.saveServerUrl(this, serverUrl)
-        Toast.makeText(this, "Ayarlar kaydedildi", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Ayarlar kaydedildi: $serverUrl", Toast.LENGTH_LONG).show()
     }
 
     private fun testConnection() {
@@ -92,28 +104,29 @@ class MainActivity : AppCompatActivity() {
         }
 
         val protocol = if (port == "443") "https" else "http"
-        val serverUrl = "$protocol://$ip:$port"
+        val serverUrl = if (port == "443") "$protocol://$ip" else "$protocol://$ip:$port"
+
+        Toast.makeText(this, "Test ediliyor...", Toast.LENGTH_SHORT).show()
 
         Thread {
             try {
-                val url = URL("$serverUrl/api/printer/status")  // public endpoint
+                val url = URL("$serverUrl/api/health")
                 val connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = 3000
-                connection.readTimeout = 3000
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
                 val responseCode = connection.responseCode
                 connection.disconnect()
 
                 runOnUiThread {
                     if (responseCode == 200) {
-                        Toast.makeText(this, "✓ Sunucuya bağlandı", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "✓ Sunucuya bağlandı ($serverUrl)", Toast.LENGTH_LONG).show()
                     } else {
-                        Toast.makeText(this, "✗ Sunucu hatası: $responseCode", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "✗ Sunucu hatası: HTTP $responseCode", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 runOnUiThread {
-                    Toast.makeText(this, "✗ Bağlantı başarısız: ${e.message}", Toast.LENGTH_SHORT)
-                        .show()
+                    Toast.makeText(this, "✗ Bağlantı başarısız: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }.start()
@@ -126,8 +139,16 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Telefon durumu izni gereklidir", Toast.LENGTH_SHORT).show()
+            val denied = grantResults.indices.filter {
+                grantResults[it] != PackageManager.PERMISSION_GRANTED
+            }.map { permissions[it] }
+
+            if (denied.isNotEmpty()) {
+                Toast.makeText(
+                    this,
+                    "İzin verilmedi: ${denied.joinToString()}. Aramalar algılanamaz.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
