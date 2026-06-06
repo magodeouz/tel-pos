@@ -66,7 +66,8 @@ app.post('/', async (c) => {
 // Protected — browser uses these
 app.get('/pending', async (c) => {
   const db = getDb(c.env.DB)
-  const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+  // SQLite stores datetime as "YYYY-MM-DD HH:MM:SS" (space, no T/Z)
+  const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString().replace('T', ' ').replace('Z', '').slice(0, 19)
   const calls = await db.select().from(incomingCalls)
     .where(and(eq(incomingCalls.acknowledged, false), gte(incomingCalls.createdAt, cutoff)))
     .orderBy(desc(incomingCalls.createdAt))
