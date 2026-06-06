@@ -110,6 +110,26 @@ async function openCustomerDetail(customerId) {
     document.getElementById('custDetailCariPayBtn').onclick = () => openCariTahsilat(d.id, d.name, d.cari_balance);
     document.getElementById('custDetailCariPayBtn').style.display = d.cari_balance > 0 ? '' : 'none';
 
+    // Tahsilat geçmişi
+    const payments = d.cari_payments || [];
+    const paymentsEl = document.getElementById('custDetailPayments');
+    if (paymentsEl) {
+        if (payments.length === 0) {
+            paymentsEl.innerHTML = '<p class="text-muted" style="font-size:.8rem;">Tahsilat yok</p>';
+        } else {
+            paymentsEl.innerHTML = payments.map(p => `
+                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:.8rem;">
+                    <div>
+                        <span style="color:#64748b;">${new Date(p.created_at).toLocaleDateString('tr-TR')}</span>
+                        ${p.note ? `<span style="margin-left:6px;color:#64748b;">${p.note}</span>` : ''}
+                    </div>
+                    <strong style="color:#16a34a;">+${fmt(p.amount)} ₺</strong>
+                </div>
+            `).join('');
+        }
+        document.getElementById('custDetailPaymentsSection').style.display = '';
+    }
+
     document.getElementById('custDetailOrders').innerHTML = orders.length === 0
         ? '<p class="text-muted" style="font-size:.8rem;">Sipariş yok</p>'
         : orders.slice(0, 30).map(o => {

@@ -83,13 +83,14 @@ app.get('/:id/detail', async (c) => {
     .filter(o => o.status === 'paid' && o.payment_method === 'cari')
     .reduce((s, o) => s + o.total, 0)
 
-  const paymentsRow = await c.env.DB
-    .prepare('SELECT COALESCE(SUM(amount),0) as total FROM cari_payments WHERE customer_id = ?')
-    .bind(id).first<{total: number}>()
-  const cariPaid = paymentsRow?.total ?? 0
+  const paymentsResult = await c.env.DB
+    .prepare('SELECT id, amount, note, created_at FROM cari_payments WHERE customer_id = ? ORDER BY created_at DESC')
+    .bind(id).all<{id: number; amount: number; note: string; created_at: string}>()
+  const cariPayments = paymentsResult.results ?? []
+  const cariPaid = cariPayments.reduce((s, p) => s + p.amount, 0)
   const cariBalance = Math.max(0, cariOrders - cariPaid)
 
-  return c.json({ ...normalize(cust), orders: ordersWithTotal, cari_balance: cariBalance })
+  return c.json({ ...normalize(cust), orders: ordersWithTotal, cari_balance: cariBalance, cari_payments: cariPayments })
 })
 
 // Cari tahsilat — record a payment received from customer
