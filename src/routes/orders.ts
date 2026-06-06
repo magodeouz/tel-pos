@@ -150,6 +150,21 @@ app.post('/:id/items', async (c) => {
   const body = await c.req.json()
   const [product] = await db.select().from(products).where(eq(products.id, body.product_id)).limit(1)
   if (!product) return c.json({ detail: 'Ürün bulunamadı' }, 404)
+
+  // If the same product is already on this order, bump its quantity
+  // instead of adding a duplicate line.
+  const [existing] = await db.select().from(orderItems)
+    .where(and(eq(orderItems.orderId, orderId), eq(orderItems.productId, body.product_id)))
+    .limit(1)
+
+  if (existing) {
+    const [updated] = await db.update(orderItems)
+      .set({ quantity: existing.quantity + (body.quantity ?? 1) })
+      .where(eq(orderItems.id, existing.id))
+      .returning()
+    return c.json({ id: updated.id, product_id: updated.productId, product_name: product.name, quantity: updated.quantity, unit_price: updated.unitPrice })
+  }
+
   const [item] = await db.insert(orderItems).values({
     orderId, productId: body.product_id, quantity: body.quantity, unitPrice: product.price
   }).returning()

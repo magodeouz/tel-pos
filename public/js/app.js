@@ -886,25 +886,21 @@ function renderOrderDetails(order) {
         itemsDiv.innerHTML = '<div class="empty-state"><span class="empty-icon">🛒</span><span>Ürün eklemek için sağ panelden seçin</span></div>';
     } else {
         itemsDiv.innerHTML = order.items
-            .map(
-                (item) => {
-                    const itemNote = itemNotes[item.id] || "";
-                    return `
+            .map((item) => {
+                const itemNote = itemNotes[item.id] || "";
+                return `
             <div class="order-item-row" data-item-id="${item.id}">
-                <span class="order-item-name">${item.product_name}${itemNote ? `<br><small style="color:#3b82f6;font-size:.68rem;">📝 ${itemNote}</small>` : ''}</span>
+                <span class="order-item-name">
+                    ${item.product_name}
+                    ${itemNote ? `<br><small style="color:#3b82f6;font-size:.68rem;">📝 ${itemNote}</small>` : ''}
+                </span>
                 <span class="order-item-qty">${item.quantity}×</span>
                 <span class="order-item-price">${fmt(item.quantity * item.unit_price)} ₺</span>
-                <button class="order-item-del" data-edit-note="${item.id}" title="Not ekle">✏️</button>
-                <button class="order-item-del" onclick="removeItem(${order.id}, ${item.id})" title="Sil" style="color:#ef4444;">
-                    <button class="btn btn-sm btn-danger" onclick="removeItem(${order.id}, ${item.id})">×</button>
-                </div>
-                <div class="col-12 text-muted small">
-                    ${item.quantity} × ${fmt(item.unit_price)} = ${fmt(item.quantity * item.unit_price)} TL
-×</button>
+                <button class="order-item-action" data-edit-note="${item.id}" title="Düzenle">✏️</button>
+                <button class="order-item-action danger" onclick="removeItem(${order.id}, ${item.id})" title="Sil">🗑</button>
             </div>
         `;
-                }
-            )
+            })
             .join("");
     }
 

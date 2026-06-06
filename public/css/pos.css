@@ -338,18 +338,19 @@ body {
   white-space: nowrap;
 }
 .order-item-price { font-weight: 700; font-size: .8rem; min-width: 52px; text-align: right; }
-.order-item-del {
+.order-item-action {
   background: none;
   border: none;
-  color: #ef4444;
   cursor: pointer;
   font-size: .85rem;
-  padding: 2px 4px;
+  padding: 2px 5px;
   border-radius: 4px;
-  opacity: .6;
+  opacity: .7;
   flex-shrink: 0;
+  line-height: 1;
 }
-.order-item-del:hover { opacity: 1; background: #fee2e2; }
+.order-item-action:hover { opacity: 1; background: #f1f5f9; }
+.order-item-action.danger:hover { background: #fee2e2; }
 
 /* Empty state */
 .empty-state {
