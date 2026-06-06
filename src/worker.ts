@@ -35,7 +35,7 @@ app.get('/api/health', (c) => c.json({ ok: true }))
 app.get('/api/printer/status', (c) => c.json({ connected: false }))
 // Receipt is public — window.open() can't send Authorization headers
 app.get('/api/orders/:id/receipt', (c) => ordersRoute.fetch(
-  new Request(c.req.url.replace('/api/orders', '/'), c.req.raw),
+  new Request(c.req.url.replace('/api/orders', ''), c.req.raw),
   c.env
 ))
 app.post('/api/incoming-call', (c) => incomingCallRoute.fetch(
