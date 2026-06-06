@@ -89,6 +89,9 @@ app.get('/customer-spending', async (c) => {
 app.get('/day-close', async (c) => {
   const db = getDb(c.env.DB)
 
+  // Turkish money format: thousands "." and decimals "," (e.g. 91.295,00).
+  const fmtTR = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
   // Day = Istanbul day (UTC+3, no DST). DB stores UTC.
   // ?date=YYYY-MM-DD picks a specific Istanbul day; otherwise use today.
   const istDateStr = c.req.query('date')
@@ -154,10 +157,10 @@ app.get('/day-close', async (c) => {
     .toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric', timeZone: 'Europe/Istanbul' })
 
   const payRows = Object.values(byPayment).filter(p => p.count > 0)
-    .map(p => `<tr><td>${p.label}</td><td>${p.count}</td><td>${p.total.toFixed(2)} ₺</td></tr>`).join('')
+    .map(p => `<tr><td>${p.label}</td><td>${p.count}</td><td>${fmtTR(p.total)} ₺</td></tr>`).join('')
 
   const prodRows = topProds
-    .map(p => `<tr><td>${p.name}</td><td>${p.qty}</td><td>${p.rev.toFixed(2)} ₺</td></tr>`).join('')
+    .map(p => `<tr><td>${p.name}</td><td>${p.qty}</td><td>${fmtTR(p.rev)} ₺</td></tr>`).join('')
 
   const orderRows = dayOrders.map(o => {
     const t = o.createdAt
@@ -167,7 +170,7 @@ app.get('/day-close', async (c) => {
     const st = o.status === 'cancelled' ? 'İptal'
       : o.status === 'open' ? 'Açık'
       : (payShort[o.paymentMethod ?? 'nakit'] || 'Ödendi')
-    return `<tr><td>${t}</td><td>#${o.id}${cust ? ' ' + cust : ''}</td><td>${getTotal(o.id).toFixed(2)} ₺</td><td>${st}</td></tr>`
+    return `<tr><td>${t}</td><td>#${o.id}${cust ? ' ' + cust : ''}</td><td>${fmtTR(getTotal(o.id))} ₺</td><td>${st}</td></tr>`
   }).join('')
 
   return c.html(`<!DOCTYPE html>
@@ -199,7 +202,7 @@ ${restPhone ? `<p class="center" style="font-size:10px;margin:1px 0">Tel: ${rest
 </table>
 <div style="margin:6px 0;padding:6px;border:2px solid #000;text-align:center;">
   <div style="font-size:10px">TOPLAM CİRO</div>
-  <div class="big">${paidTotal.toFixed(2)} ₺</div>
+  <div class="big">${fmtTR(paidTotal)} ₺</div>
 </div>
 ${payRows ? `<h3>Ödeme Yöntemleri</h3>
 <table><tr><td><b>Yöntem</b></td><td><b>Adet</b></td><td><b>Tutar</b></td></tr>${payRows}</table>` : ''}

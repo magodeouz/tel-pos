@@ -1,3 +1,8 @@
+// Turkish money format: thousands "." and decimals "," (e.g. 91.295,00).
+function fmtTL(n) {
+    return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function authHeaders(extra = {}) {
     const token = localStorage.getItem('access_token');
     return token
@@ -102,7 +107,7 @@ function renderProductsTable() {
                 <td style="color:#64748b">${product.id}</td>
                 <td><strong>${product.name}</strong></td>
                 <td><span class="badge badge-blue">${product.category_name}</span></td>
-                <td><strong>${product.price.toFixed(2)} ₺</strong></td>
+                <td><strong>${fmtTL(product.price)} ₺</strong></td>
                 <td style="color:#64748b;font-size:.78rem">${product.note || '—'}</td>
                 <td>${activeStatus}</td>
                 <td style="text-align:center">
@@ -223,9 +228,9 @@ function renderSalesReport(data) {
     const avgOrder = totalOrders > 0 ? totalAmount / totalOrders : 0;
     const daysCount = data.daily_breakdown.length;
 
-    document.getElementById("totalSalesAmount").textContent = totalAmount.toFixed(2) + " TL";
+    document.getElementById("totalSalesAmount").textContent = fmtTL(totalAmount) + " TL";
     document.getElementById("totalOrdersCount").textContent = totalOrders;
-    document.getElementById("avgOrderValue").textContent = avgOrder.toFixed(2) + " TL";
+    document.getElementById("avgOrderValue").textContent = fmtTL(avgOrder) + " TL";
     document.getElementById("daysCount").textContent = daysCount;
 
     const tbody = document.getElementById("salesBreakdownBody");
@@ -241,8 +246,8 @@ function renderSalesReport(data) {
                 onclick="window.open('/api/reports/day-close?date=${day.date}','_blank')">
                 <td>${formatDate(day.date)} 🔍</td>
                 <td>${day.order_count}</td>
-                <td>${day.total_amount.toFixed(2)} TL</td>
-                <td>${avgDayOrder.toFixed(2)} TL</td>
+                <td>${fmtTL(day.total_amount)} TL</td>
+                <td>${fmtTL(avgDayOrder)} TL</td>
             </tr>
         `;
     }).join("");
@@ -282,7 +287,7 @@ function renderProductSalesAnalysis(data) {
                 <td>${index + 1}</td>
                 <td><strong>${product.product_name}</strong></td>
                 <td>${product.quantity_sold}</td>
-                <td>${product.revenue.toFixed(2)} TL</td>
+                <td>${fmtTL(product.revenue)} TL</td>
                 <td>
                     <div class="progress" style="height: 20px;">
                         <div class="progress-bar" style="width: ${percentage}%">
@@ -312,8 +317,8 @@ function renderCustomerSpendingAnalysis(data) {
 
     document.getElementById("totalCustomersCount").textContent = totalCustomers;
     document.getElementById("topSpender").textContent = topCustomer ? topCustomer.name : "-";
-    document.getElementById("topSpenderAmount").textContent = topCustomer ? topCustomer.total_spent.toFixed(2) + " TL" : "0.00 TL";
-    document.getElementById("totalSpending").textContent = totalSpending.toFixed(2) + " TL";
+    document.getElementById("topSpenderAmount").textContent = topCustomer ? fmtTL(topCustomer.total_spent) + " TL" : "0.00 TL";
+    document.getElementById("totalSpending").textContent = fmtTL(totalSpending) + " TL";
 
     const tbody = document.getElementById("customerSpendingBody");
     if (data.top_customers.length === 0) {
@@ -328,9 +333,9 @@ function renderCustomerSpendingAnalysis(data) {
                 <td>${index + 1}</td>
                 <td><strong>${customer.name}</strong></td>
                 <td>${customer.phone}</td>
-                <td>${customer.total_spent.toFixed(2)} TL</td>
+                <td>${fmtTL(customer.total_spent)} TL</td>
                 <td>${customer.order_count}</td>
-                <td>${avgOrder.toFixed(2)} TL</td>
+                <td>${fmtTL(avgOrder)} TL</td>
             </tr>
         `;
     }).join("");
