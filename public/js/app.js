@@ -222,7 +222,7 @@ function renderCategories() {
 
 async function loadOrders() {
     const [allCustomers, orders] = await Promise.all([
-        API.get("/api/customers/"),
+        API.get("/api/customers"),
         API.get("/api/orders?status=open"),
     ]);
     customers = {};
