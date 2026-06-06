@@ -145,7 +145,7 @@ app.get('/day-close', async (c) => {
     .map(p => `<tr><td>${p.name}</td><td>${p.qty}</td><td>${p.rev.toFixed(2)} ₺</td></tr>`).join('')
 
   return c.html(`<!DOCTYPE html>
-<html lang="tr"><head><meta charset="utf-8"><title>Gün Kapanış — ${today}</title>
+<html lang="tr"><head><meta charset="utf-8"><title>Gün Kapanış — ${dateStr}</title>
 <style>
 @media print{.no-print{display:none;} body{margin:0}}
 body{font-family:monospace;max-width:80mm;margin:0 auto;padding:12px;font-size:12px;}
