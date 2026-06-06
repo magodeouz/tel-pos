@@ -8,15 +8,22 @@ const app = new Hono<{ Bindings: Env }>()
 
 app.get('/sales-by-date', async (c) => {
   const db = getDb(c.env.DB)
-  const startStr = c.req.query('start_date')
-  const endStr = c.req.query('end_date')
-  const start = startStr ?? new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
-  const end = endStr ?? new Date().toISOString().slice(0, 10)
+  // Dates are Istanbul (UTC+3, no DST) days; DB stores UTC. Group and filter
+  // by Istanbul day so totals line up exactly with the day-close report.
+  const istToday = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
+  const start = c.req.query('start_date') ?? new Date(Date.now() - 30 * 86400000 + 3 * 3600 * 1000).toISOString().slice(0, 10)
+  const end = c.req.query('end_date') ?? istToday
+
+  const toDb = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ')
+  const startUtc = toDb(new Date(start + 'T00:00:00+03:00'))
+  const endUtc = toDb(new Date(end + 'T23:59:59+03:00'))
+  const istDateKey = (utc: string) =>
+    new Date(new Date(utc.replace(' ', 'T') + 'Z').getTime() + 3 * 3600 * 1000).toISOString().slice(0, 10)
 
   const paidOrders = await db.select().from(orders)
     .where(eq(orders.status, 'paid'))
 
-  const filtered = paidOrders.filter(o => o.createdAt && o.createdAt >= start && o.createdAt <= end + 'T23:59:59')
+  const filtered = paidOrders.filter(o => o.createdAt && o.createdAt >= startUtc && o.createdAt <= endUtc)
   const items = await db.select().from(orderItems)
 
   let totalSales = 0, totalOrders = 0
@@ -27,7 +34,7 @@ app.get('/sales-by-date', async (c) => {
     if (orderTotal <= 0) continue
     totalSales += orderTotal
     totalOrders++
-    const dateKey = (order.createdAt ?? '').slice(0, 10)
+    const dateKey = istDateKey(order.createdAt ?? '')
     if (!dailyData[dateKey]) dailyData[dateKey] = { order_count: 0, total_amount: 0 }
     dailyData[dateKey].order_count++
     dailyData[dateKey].total_amount += orderTotal
