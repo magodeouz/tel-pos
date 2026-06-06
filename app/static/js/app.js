@@ -679,6 +679,8 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 function startApp() {
     pollIncomingCalls();
     setInterval(pollIncomingCalls, 2000);
+    // Keep Vercel function warm to avoid cold start delays
+    setInterval(() => fetch('/api/health').catch(() => {}), 20000);
     loadCategories();
     loadOrders();
     loadCustomers();

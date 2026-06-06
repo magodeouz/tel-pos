@@ -70,6 +70,11 @@ async def management():
     return {"message": "Management paneli"}
 
 
+@app.get("/api/health")
+async def health():
+    return {"ok": True}
+
+
 @app.get("/api/printer/status")
 async def printer_status():
     return {"connected": False, "message": "Browser print aktif"}
