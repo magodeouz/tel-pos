@@ -1037,7 +1037,10 @@ document.getElementById("newOrderBtn").addEventListener("click", async (e) => {
         const order = await API.post("/api/orders", { customer_id: null });
         currentOrderId = order.id;
         renderOrderDetails(order);
-        loadOrders();
+        // Switch the left panel to the Orders tab so the new order is visible,
+        // then refresh both lists.
+        if (typeof switchTab === 'function') switchTab('orders');
+        await loadOrders();
         loadAllOrders(1);
     } finally {
         btn.disabled = false;
