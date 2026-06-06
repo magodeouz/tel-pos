@@ -4,6 +4,22 @@ function fmt(n) {
     return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// ── Date formatting (always Istanbul time) ───────────────────
+// DB stores UTC ("YYYY-MM-DD HH:MM:SS"). Mark it UTC, render Istanbul.
+function toUtcDate(s) {
+    if (!s) return null;
+    const iso = s.includes('T') ? s : s.replace(' ', 'T') + (s.endsWith('Z') ? '' : 'Z');
+    return new Date(iso);
+}
+function fmtDateTime(s) {
+    const d = toUtcDate(s);
+    return d ? d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) : '';
+}
+function fmtDate(s) {
+    const d = toUtcDate(s);
+    return d ? d.toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul' }) : '';
+}
+
 let currentOrderId = null;
 let categories = [];
 let customers = {};
@@ -120,7 +136,7 @@ async function openCustomerDetail(customerId) {
             paymentsEl.innerHTML = payments.map(p => `
                 <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:.8rem;">
                     <div>
-                        <span style="color:#64748b;">${new Date(p.created_at).toLocaleDateString('tr-TR')}</span>
+                        <span style="color:#64748b;">${fmtDate(p.created_at)}</span>
                         ${p.note ? `<span style="margin-left:6px;color:#64748b;">${p.note}</span>` : ''}
                     </div>
                     <strong style="color:#16a34a;">+${fmt(p.amount)} ₺</strong>
@@ -141,7 +157,7 @@ async function openCustomerDetail(customerId) {
                  onclick="showOrderDetail(${o.id})">
                 <div>
                     <strong>#${o.id}</strong>
-                    <span style="color:#64748b;margin-left:6px;">${new Date(o.created_at).toLocaleDateString('tr-TR')}</span>
+                    <span style="color:#64748b;margin-left:6px;">${fmtDate(o.created_at)}</span>
                     <span style="margin-left:6px;">${payMap[o.payment_method] || ''}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
@@ -449,7 +465,7 @@ function handleIncomingCall(data) {
                             <span class="badge bg-secondary">${order.status}</span>
                         </div>
                         <small class="text-muted">
-                            ${new Date(order.created_at).toLocaleString("tr-TR")}
+                            ${fmtDateTime(order.created_at)}
                         </small>
                         <div class="mt-2 small">
                             ${order.items
@@ -671,7 +687,7 @@ function renderAllOrders(orders) {
                     <tr style="cursor: pointer;" data-order-detail-id="${order.id}">
                         <td><strong>#${order.id}</strong></td>
                         <td>${customerName}</td>
-                        <td><small>${new Date(order.created_at).toLocaleString("tr-TR")}</small></td>
+                        <td><small>${fmtDateTime(order.created_at)}</small></td>
                         <td>${order.items.length}</td>
                         <td><strong>${fmt(order.total)} TL</strong></td>
                         <td>
@@ -728,7 +744,7 @@ async function showOrderDetail(orderId) {
     document.getElementById("detailStatus").textContent = statusLabel;
     document.getElementById("detailStatus").className = `status-badge ${statusClass}`;
 
-    document.getElementById("detailDate").textContent = new Date(order.created_at).toLocaleString("tr-TR");
+    document.getElementById("detailDate").textContent = fmtDateTime(order.created_at);
 
     // Customer
     const custEl = document.getElementById("detailCustomer");
@@ -1057,7 +1073,7 @@ document.getElementById("createOrderFromCallBtn").addEventListener("click", asyn
 // Current time
 function updateTime() {
     const now = new Date();
-    document.getElementById("currentTime").textContent = now.toLocaleTimeString("tr-TR");
+    document.getElementById("currentTime").textContent = now.toLocaleTimeString("tr-TR", { timeZone: 'Europe/Istanbul' });
 }
 
 setInterval(updateTime, 1000);

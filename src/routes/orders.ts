@@ -88,7 +88,10 @@ app.get('/:id/receipt', async (c) => {
   const itemsHtml = built.items.map(i => `<div class="item"><span>${i.product_name} x${i.quantity}</span><span>${fmtTR(i.quantity * i.unit_price)} ₺</span></div>`).join('')
   const discountHtml = discountVal > 0 ? `<div class="item" style="color:#c00"><span>İndirim</span><span>-${fmtTR(discountVal)} ₺</span></div>` : ''
   const noteHtml = built.note ? `<p style="font-size:0.8em;color:#666;margin:4px 0">Not: ${built.note}</p>` : ''
-  const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('tr-TR') : ''
+  // DB stores UTC — mark it UTC then render Istanbul time
+  const dateStr = order.createdAt
+    ? new Date(order.createdAt.replace(' ', 'T') + 'Z').toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })
+    : ''
 
   const restName = c.env.RESTAURANT_NAME ?? 'EFE BÜFE'
   const restAddr = c.env.RESTAURANT_ADDRESS ?? ''

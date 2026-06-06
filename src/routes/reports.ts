@@ -82,15 +82,19 @@ app.get('/customer-spending', async (c) => {
 app.get('/day-close', async (c) => {
   const db = getDb(c.env.DB)
 
-  // Today's date in SQLite format
-  const today = new Date().toISOString().replace('T', ' ').slice(0, 10)
-  const todayStart = today + ' 00:00:00'
-  const todayEnd   = today + ' 23:59:59'
+  // "Today" = Istanbul day (UTC+3, no DST). DB stores UTC.
+  // Get Istanbul's current date, then its [00:00, 23:59:59] as UTC instants.
+  const istNow = new Date(Date.now() + 3 * 3600 * 1000)
+  const istDateStr = istNow.toISOString().slice(0, 10) // YYYY-MM-DD in Istanbul
+  const startUtc = new Date(istDateStr + 'T00:00:00+03:00')
+  const endUtc = new Date(istDateStr + 'T23:59:59+03:00')
 
   const allOrders = await db.select().from(orders)
-  const todayOrders = allOrders.filter(o =>
-    o.createdAt && o.createdAt >= todayStart && o.createdAt <= todayEnd
-  )
+  const todayOrders = allOrders.filter(o => {
+    if (!o.createdAt) return false
+    const d = new Date(o.createdAt.replace(' ', 'T') + 'Z') // parse as UTC
+    return d >= startUtc && d <= endUtc
+  })
 
   const items = await db.select({
     orderId: orderItems.orderId, quantity: orderItems.quantity,
@@ -132,7 +136,7 @@ app.get('/day-close', async (c) => {
   const restName  = c.env.RESTAURANT_NAME  ?? 'EFE BÜFE'
   const restAddr  = c.env.RESTAURANT_ADDRESS ?? ''
   const restPhone = c.env.RESTAURANT_PHONE  ?? ''
-  const dateStr   = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' })
+  const dateStr   = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric', timeZone: 'Europe/Istanbul' })
 
   const payRows = Object.values(byPayment).filter(p => p.count > 0)
     .map(p => `<tr><td>${p.label}</td><td>${p.count}</td><td>${p.total.toFixed(2)} ₺</td></tr>`).join('')
@@ -176,7 +180,7 @@ ${payRows ? `<h3>Ödeme Yöntemleri</h3>
 ${prodRows ? `<h3>En Çok Satılan Ürünler</h3>
 <table><tr><td><b>Ürün</b></td><td><b>Adet</b></td><td><b>Tutar</b></td></tr>${prodRows}</table>` : ''}
 <hr>
-<p class="center" style="font-size:10px">Rapor: ${new Date().toLocaleTimeString('tr-TR')}</p>
+<p class="center" style="font-size:10px">Rapor: ${new Date().toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul' })}</p>
 <div class="no-print">
   <button class="btn" onclick="window.print()">🖨️ Yazdır</button>
 </div>
