@@ -64,26 +64,90 @@ function renderCategoryList() {
     if (!el) return;
 
     const sorted = [...categories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-    const row = (id, name, count, actions) => `
-        <div class="cat-item ${selectedCategoryId === id ? 'active' : ''}" onclick="selectCategory(${id === null ? 'null' : id})">
-            <span class="cat-name">${name}</span>
-            <span class="cat-count">${count}</span>
-            ${actions || ''}
+
+    // "Tümü" is pinned on top (not draggable). Real categories live in a
+    // separate sortable container so drag-reorder can't move them above "Tümü".
+    const allRow = `
+        <div class="cat-item ${selectedCategoryId === null ? 'active' : ''}" onclick="selectCategory(null)">
+            <span class="cat-drag" style="visibility:hidden">⠿</span>
+            <span class="cat-name">Tümü</span>
+            <span class="cat-count">${products.length}</span>
         </div>`;
 
-    let html = row(null, "Tümü", products.length, '');
-    html += sorted.map(c => {
+    const catRows = sorted.map(c => {
         const count = products.filter(p => p.category_id === c.id).length;
-        const actions = `<span class="cat-actions">
-            <button class="icon-btn" title="Düzenle"
-                onclick="event.stopPropagation(); editCategory(${c.id}, '${c.name.replace(/'/g, "\\'")}', ${c.sort_order || 1})">✏️</button>
-            <button class="icon-btn" title="Sil"
-                onclick="event.stopPropagation(); deleteCategory(${c.id})">🗑</button>
-        </span>`;
-        return row(c.id, c.name, count, actions);
+        return `
+        <div class="cat-item ${selectedCategoryId === c.id ? 'active' : ''}" data-cat-id="${c.id}" onclick="selectCategory(${c.id})">
+            <span class="cat-drag" title="Sürükleyerek sırala">⠿</span>
+            <span class="cat-name">${c.name}</span>
+            <span class="cat-count">${count}</span>
+            <span class="cat-actions">
+                <button class="icon-btn" title="Düzenle"
+                    onclick="event.stopPropagation(); editCategory(${c.id}, '${c.name.replace(/'/g, "\\'")}', ${c.sort_order || 1})">✏️</button>
+                <button class="icon-btn" title="Sil"
+                    onclick="event.stopPropagation(); deleteCategory(${c.id})">🗑</button>
+            </span>
+        </div>`;
     }).join("");
 
-    el.innerHTML = html;
+    el.innerHTML = allRow + `<div id="categorySortable" class="cat-sortable">${catRows}</div>`;
+
+    makeSortable(document.getElementById("categorySortable"), ".cat-item", persistCategoryOrder);
+}
+
+async function persistCategoryOrder() {
+    const ids = [...document.querySelectorAll("#categorySortable .cat-item")].map(el => Number(el.dataset.catId));
+    try {
+        await API.post("/api/categories/reorder", { ids });
+        await loadCategories();
+        await loadProducts();
+        selectCategory(selectedCategoryId);
+    } catch (e) {
+        alert("Kategori sırası kaydedilemedi: " + e.message);
+    }
+}
+
+// ── Generic drag-and-drop reorder for a list/table container ──
+function makeSortable(container, itemSelector, onDrop) {
+    if (!container) return;
+    let dragEl = null;
+
+    container.querySelectorAll(itemSelector).forEach(el => {
+        el.setAttribute("draggable", "true");
+        el.addEventListener("dragstart", (e) => {
+            dragEl = el;
+            e.dataTransfer.effectAllowed = "move";
+            setTimeout(() => el.classList.add("dragging"), 0);
+        });
+        el.addEventListener("dragend", () => {
+            el.classList.remove("dragging");
+            if (dragEl) { dragEl = null; onDrop(); }
+        });
+    });
+
+    // Bind the container's dragover only once (it may persist across renders).
+    if (container.dataset.sortableBound !== "1") {
+        container.dataset.sortableBound = "1";
+        container.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            const moving = container.querySelector("." + "dragging");
+            if (!moving) return;
+            const after = dragAfterElement(container, itemSelector, e.clientY);
+            if (after == null) container.appendChild(moving);
+            else container.insertBefore(moving, after);
+        });
+    }
+}
+
+function dragAfterElement(container, selector, y) {
+    const els = [...container.querySelectorAll(selector + ":not(.dragging)")];
+    let closest = { offset: -Infinity, el: null };
+    for (const child of els) {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) closest = { offset, el: child };
+    }
+    return closest.el;
 }
 
 function selectCategory(id) {
@@ -93,7 +157,14 @@ function selectCategory(id) {
     renderProductsTable();
 
     const cat = categories.find(c => c.id === id);
-    document.getElementById("productsTitle").textContent = "Ürünler: " + (cat ? cat.name : "Tümü");
+    const title = document.getElementById("productsTitle");
+    title.textContent = "Ürünler: " + (cat ? cat.name : "Tümü");
+    if (!cat) {
+        const hint = document.createElement("span");
+        hint.style.cssText = "font-weight:400;font-size:.78rem;color:var(--muted);margin-left:8px;";
+        hint.textContent = "(sıralamak için bir kategori seçin)";
+        title.appendChild(hint);
+    }
     // Pre-fill the add-product category with the selected one for convenience.
     if (id) document.getElementById("newProductCategory").value = String(id);
 }
@@ -136,33 +207,49 @@ function filterProducts() {
 }
 
 function renderProductsTable() {
-    const tbody = document.getElementById("productsTableBody");
+    const body = document.getElementById("productsTableBody");
 
     if (filteredProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Ürün bulunamadı</td></tr>';
+        body.innerHTML = '<div class="mgmt-empty">Ürün bulunamadı</div>';
         return;
     }
 
-    tbody.innerHTML = filteredProducts.map(product => {
+    // Drag-reorder only makes sense within a single category.
+    const sortable = selectedCategoryId != null;
+
+    body.innerHTML = filteredProducts.map(product => {
         const activeStatus = product.active
             ? '<span class="badge badge-green">Aktif</span>'
             : '<span class="badge badge-red">Pasif</span>';
 
         return `
-            <tr>
-                <td style="color:#64748b">${product.id}</td>
-                <td><strong>${product.name}</strong></td>
-                <td><span class="badge badge-blue">${product.category_name}</span></td>
-                <td><strong>${fmtTL(product.price)} ₺</strong></td>
-                <td style="color:#64748b;font-size:.78rem">${product.note || '—'}</td>
-                <td>${activeStatus}</td>
-                <td style="text-align:center">
+            <div class="prod-row ${sortable ? 'row-sortable' : ''}" data-product-id="${product.id}">
+                <span style="color:#64748b">${sortable ? '<span class="row-drag" title="Sürükleyerek sırala">⠿</span> ' : ''}${product.id}</span>
+                <span><strong>${product.name}</strong></span>
+                <span><span class="badge badge-blue">${product.category_name}</span></span>
+                <span><strong>${fmtTL(product.price)} ₺</strong></span>
+                <span style="color:#64748b;font-size:.78rem">${product.note || '—'}</span>
+                <span>${activeStatus}</span>
+                <span class="prod-c-actions">
                     <button class="btn btn-ghost btn-sm" onclick="openEditProductModal(${product.id})" title="Düzenle">✏️</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})" title="Sil">🗑</button>
-                </td>
-            </tr>
+                </span>
+            </div>
         `;
     }).join("");
+
+    if (sortable) makeSortable(body, ".prod-row", persistProductOrder);
+}
+
+async function persistProductOrder() {
+    const ids = [...document.querySelectorAll("#productsTableBody .prod-row[data-product-id]")].map(el => Number(el.dataset.productId));
+    try {
+        await API.post("/api/products/reorder", { ids });
+        await loadProducts();
+        selectCategory(selectedCategoryId);
+    } catch (e) {
+        alert("Ürün sırası kaydedilemedi: " + e.message);
+    }
 }
 
 function updateCategorySelects() {

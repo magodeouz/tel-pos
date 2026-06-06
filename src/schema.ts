@@ -30,6 +30,7 @@ export const products = sqliteTable('products', {
   price: real('price').notNull(),
   note: text('note'),
   active: integer('active', { mode: 'boolean' }).default(true),
+  sortOrder: integer('sort_order').default(0),
 })
 
 export const orders = sqliteTable('orders', {

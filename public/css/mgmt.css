@@ -384,6 +384,37 @@ body {
 .cat-add-form { display: flex; gap: 6px; border-top: 1px dashed var(--border); padding-top: 12px; }
 .cat-add-form .form-input { flex: 1; }
 
+.cat-sortable { display: flex; flex-direction: column; gap: 3px; margin-top: 3px; }
+.cat-drag { color: #94a3b8; cursor: grab; font-size: .9rem; line-height: 1; user-select: none; }
+.cat-item[draggable="true"]:active { cursor: grabbing; }
+
+/* Drag-reorder visual states (shared by category list + product rows) */
+.dragging { opacity: .45; }
+.row-drag { color: #94a3b8; user-select: none; }
+
+/* Product list (div grid so rows drag reliably, unlike <tr>) */
+.prod-table { width: 100%; }
+.prod-head, .prod-row {
+  display: grid;
+  grid-template-columns: 66px minmax(110px, 1.6fr) 1.1fr .9fr 1.3fr .8fr 86px;
+  align-items: center;
+  gap: 8px;
+}
+.prod-head {
+  padding: 8px 10px;
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); border-bottom: 2px solid var(--border);
+}
+.prod-rows { display: flex; flex-direction: column; }
+.prod-row {
+  padding: 9px 10px; border-bottom: 1px solid #f1f5f9; font-size: .85rem;
+}
+.prod-row:hover { background: #f8fafc; }
+.prod-row.row-sortable { cursor: grab; }
+.prod-row.row-sortable:active { cursor: grabbing; }
+.prod-row.dragging { background: #eff6ff; }
+.prod-c-actions { display: flex; gap: 4px; justify-content: center; }
+
 .mgmt-form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 14px; align-items: end; }
 .mgmt-form-row > .form-check-row,
 .mgmt-form-row > .btn { grid-column: 1 / -1; }
