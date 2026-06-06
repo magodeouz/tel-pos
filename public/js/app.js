@@ -4,7 +4,8 @@ let customers = {};
 let incomingCallData = null;
 let allOrdersPage = 1;
 let allOrdersPages = 1;
-let itemNotes = {}; // Track notes for items: { item_id: "note text" }
+let itemNotes = {};
+let isCreatingOrder = false; // prevents double-tap on any order creation
 
 function authHeaders(extra = {}) {
     const token = localStorage.getItem('access_token');
@@ -247,10 +248,14 @@ function renderCustomers(customers) {
 }
 
 async function createOrderForCustomer(customerId, customerName) {
+    if (isCreatingOrder) return;
+    isCreatingOrder = true;
+    try {
     const order = await API.post("/api/orders", { customer_id: customerId });
     currentOrderId = order.id;
     renderOrderDetails(order);
     loadOrders();
+    } finally { isCreatingOrder = false; }
     // Switch to orders tab
 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -572,11 +577,20 @@ function checkPrinterStatus() {
 }
 
 // Event listeners
-document.getElementById("newOrderBtn").addEventListener("click", async () => {
-    const order = await API.post("/api/orders", { customer_id: null });
-    currentOrderId = order.id;
-    renderOrderDetails(order);
-    loadOrders();
+document.getElementById("newOrderBtn").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = "Oluşturuluyor...";
+    try {
+        const order = await API.post("/api/orders", { customer_id: null });
+        currentOrderId = order.id;
+        renderOrderDetails(order);
+        loadOrders();
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "+ Yeni Sipariş";
+    }
 });
 
 document.getElementById("printBtn").addEventListener("click", async () => {
