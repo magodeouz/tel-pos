@@ -74,7 +74,8 @@ function initWebSocket() {
         }
     };
 
-    _ws.onclose = () => setTimeout(initWebSocket, 3000);
+    _ws.onopen = () => document.getElementById('wsStatus')?.classList.add('connected');
+    _ws.onclose = () => { document.getElementById('wsStatus')?.classList.remove('connected'); setTimeout(initWebSocket, 3000); };
     _ws.onerror = () => _ws.close();
 }
 
@@ -197,27 +198,20 @@ async function loadCategories() {
 function renderCategories() {
     const container = document.getElementById("categoriesContainer");
     container.innerHTML = categories
-        .map(
-            (cat) => `
-        <h6>${cat.name}</h6>
-        <div class="btn-group-vertical w-100 mb-3">
-            ${cat.products
-                .filter((p) => p.active)
-                .map(
-                    (prod) => `
-                <button class="btn btn-outline-primary btn-sm text-start"
-                    data-product-id="${prod.id}"
-                    title="${(prod.note || '').replace(/"/g, '&quot;')}">
-                    ${prod.name} - ${prod.price.toFixed(2)} TL
-                    ${prod.note ? `<br><small class="text-secondary">${prod.note}</small>` : ""}
-                </button>
-            `
-                )
-                .join("")}
+        .map(cat => `
+        <div class="category-section">
+            <div class="category-label">${cat.name}</div>
+            <div class="product-grid">
+                ${cat.products.filter(p => p.active).map(prod => `
+                    <button class="product-btn" data-product-id="${prod.id}" title="${(prod.note || '').replace(/"/g, '&quot;')}">
+                        <span>${prod.name}</span>
+                        <span class="product-price">${prod.price.toFixed(2)} ₺</span>
+                        ${prod.note ? `<span class="product-note-text">${prod.note}</span>` : ''}
+                    </button>
+                `).join('')}
+            </div>
         </div>
-    `
-        )
-        .join("");
+    `).join("");
 }
 
 async function loadOrders() {
@@ -243,20 +237,13 @@ function renderCustomers(customers) {
     }
 
     container.innerHTML = customers
-        .map(
-            (customer) => `
-        <div class="card mb-2 cursor-pointer" style="cursor: pointer;" onclick="createOrderForCustomer(${customer.id}, '${customer.name}')">
-            <div class="card-body p-2">
-                <div class="d-flex justify-content-between">
-                    <span><strong>${customer.name}</strong></span>
-                </div>
-                <small class="text-muted">${customer.phone}</small><br>
-                <small>${customer.address || "Adres yok"}</small>
-            </div>
+        .map(c => `
+        <div class="customer-card" onclick="createOrderForCustomer(${c.id}, '${c.name.replace(/'/g,"\\'")}')">
+            <div class="customer-card-name">${c.name}</div>
+            <div class="customer-card-phone">${c.phone}</div>
+            ${c.address ? `<div class="customer-card-address">${c.address}</div>` : ''}
         </div>
-    `
-        )
-        .join("");
+    `).join("");
 }
 
 async function createOrderForCustomer(customerId, customerName) {
@@ -264,42 +251,36 @@ async function createOrderForCustomer(customerId, customerName) {
     currentOrderId = order.id;
     renderOrderDetails(order);
     loadOrders();
-    document.getElementById("orders-tab").click();
+    // Switch to orders tab
+document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+document.querySelector('.tab-btn')?.classList.add('active');
+document.getElementById('orders-panel')?.classList.add('active');
 }
 
 function renderOrders(orders) {
     const container = document.getElementById("ordersList");
     if (orders.length === 0) {
-        container.innerHTML = '<p class="text-muted">Sipariş yok</p>';
+        container.innerHTML = '<div class="empty-state" style="height:80px;"><span class="empty-icon">📋</span><span>Açık sipariş yok</span></div>';
         return;
     }
 
-    container.innerHTML = orders
-        .map(
-            (order) => {
-                const customerName = order.customer_id && customers[order.customer_id]
-                    ? customers[order.customer_id].name
-                    : "Müşteri Yok";
-                return `
-        <div class="card mb-2" style="background-color: ${currentOrderId === order.id ? '#e9ecef' : 'white'}">
-            <div class="card-body p-2">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div style="flex: 1; cursor: pointer;" onclick="selectOrder(${order.id})">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span><strong>#${order.id}</strong></span>
-                            <span class="badge bg-info">${order.items.length} ürün</span>
-                        </div>
-                        <small class="text-success"><strong>${customerName}</strong></small><br>
-                        <small class="text-muted">${order.total.toFixed(2)} TL</small>
-                    </div>
-                    <button class="btn btn-sm btn-danger ms-2" onclick="cancelOrderFromList(${order.id}, event)" title="İptal">×</button>
-                </div>
+    container.innerHTML = orders.map(order => {
+        const customerName = order.customer_id && customers[order.customer_id]
+            ? customers[order.customer_id].name : "Müşteri Yok";
+        const isActive = currentOrderId === order.id;
+        return `
+        <div class="order-card ${isActive ? 'active' : ''}" onclick="selectOrder(${order.id})">
+            <div class="order-card-top">
+                <span class="order-card-id">#${order.id}</span>
+                <span class="order-card-total">${order.total.toFixed(2)} ₺</span>
+                <button class="cancel-order-btn" onclick="cancelOrderFromList(${order.id}, event)" title="İptal">×</button>
             </div>
+            <div class="order-card-customer">${customerName}</div>
+            <div class="order-card-items">${order.items.length} ürün</div>
         </div>
     `;
-            }
-        )
-        .join("");
+    }).join("");
 }
 
 async function loadAllOrders(page = 1) {
@@ -321,16 +302,16 @@ function renderAllOrders(orders) {
     const sortedOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     const tableHtml = `
-        <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
+        <table class="orders-table">
+            <thead>
                 <tr>
-                    <th style="width: 8%;">Sipariş #</th>
-                    <th style="width: 20%;">Müşteri</th>
-                    <th style="width: 18%;">Tarih</th>
-                    <th style="width: 10%;">Ürün Sayısı</th>
-                    <th style="width: 12%;">Toplam</th>
-                    <th style="width: 12%;">Durum</th>
-                    <th style="width: 8%; text-align: center;">İşlem</th>
+                    <th style="width:8%">#</th>
+                    <th style="width:20%">Müşteri</th>
+                    <th style="width:18%">Tarih</th>
+                    <th style="width:8%">Ürün</th>
+                    <th style="width:12%">Toplam</th>
+                    <th style="width:14%">Durum</th>
+                    <th style="width:10%;text-align:center">İşlem</th>
                 </tr>
             </thead>
             <tbody>
@@ -346,11 +327,11 @@ function renderAllOrders(orders) {
                         <td>${order.items.length}</td>
                         <td><strong>${order.total.toFixed(2)} TL</strong></td>
                         <td>
-                            <span class="badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
-                            ${order.status !== 'paid' ? `<br><button class="btn btn-sm btn-success mt-1" data-mark-paid="${order.id}">Ödendi Yap</button>` : ''}
+                            <span class="status-badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
+                            ${order.status !== 'paid' ? `<br><button class="action-btn enabled print" style="padding:2px 6px;font-size:.68rem;border-radius:4px;margin-top:3px;" data-mark-paid="${order.id}">✓ Ödendi</button>` : ''}
                         </td>
-                        <td style="text-align: center;">
-                            <button class="btn btn-sm btn-primary" data-open-detail="${order.id}">Aç</button>
+                        <td style="text-align:center;">
+                            <button class="action-btn enabled cancel-action" style="padding:2px 8px;font-size:.72rem;border-radius:4px;" data-open-detail="${order.id}">Aç</button>
                         </td>
                     </tr>
                     `;
@@ -368,8 +349,8 @@ function getStatusText(status) {
 }
 
 function getStatusBadgeColor(status) {
-    const colors = { open: "bg-info", paid: "bg-success", cancelled: "bg-danger" };
-    return colors[status] || "bg-secondary";
+    const colors = { open: "status-open", paid: "status-paid", cancelled: "status-cancelled" };
+    return colors[status] || "status-open";
 }
 
 async function showOrderDetail(orderId) {
@@ -378,7 +359,7 @@ async function showOrderDetail(orderId) {
 
     document.getElementById("detailOrderTitle").textContent = `Sipariş #${order.id}`;
     document.getElementById("detailStatus").textContent = getStatusText(order.status);
-    document.getElementById("detailStatus").className = `badge ${getStatusBadgeColor(order.status)}`;
+    document.getElementById("detailStatus").className = `status-badge ${getStatusBadgeColor(order.status)}`;
     document.getElementById("detailDate").textContent = new Date(order.created_at).toLocaleString("tr-TR");
     document.getElementById("detailTotal").textContent = `${order.total.toFixed(2)} TL`;
     document.getElementById("detailNote").textContent = order.note || "—";
@@ -429,26 +410,24 @@ function renderOrderDetails(order) {
     noteDiv.disabled = false;
 
     if (order.items.length === 0) {
-        itemsDiv.innerHTML = '<p class="text-muted">Ürün eklenmedi</p>';
+        itemsDiv.innerHTML = '<div class="empty-state"><span class="empty-icon">🛒</span><span>Ürün eklemek için sağ panelden seçin</span></div>';
     } else {
         itemsDiv.innerHTML = order.items
             .map(
                 (item) => {
                     const itemNote = itemNotes[item.id] || "";
                     return `
-            <div class="row mb-2 pb-2 border-bottom">
-                <div class="col-7">${item.product_name}</div>
-                <div class="col-1">${item.quantity}x</div>
-                <div class="col-1 text-center">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="editItemNote(${item.id}, '${(itemNote).replace(/'/g, "\\'")}', '${item.product_name}')" title="Ürün notu">✏️</button>
-                </div>
-                <div class="col-1 text-end">
+            <div class="order-item-row" data-item-id="${item.id}">
+                <span class="order-item-name">${item.product_name}${itemNote ? `<br><small style="color:#3b82f6;font-size:.68rem;">📝 ${itemNote}</small>` : ''}</span>
+                <span class="order-item-qty">${item.quantity}×</span>
+                <span class="order-item-price">${(item.quantity * item.unit_price).toFixed(2)} ₺</span>
+                <button class="order-item-del" data-edit-note="${item.id}" title="Not ekle">✏️</button>
+                <button class="order-item-del" onclick="removeItem(${order.id}, ${item.id})" title="Sil" style="color:#ef4444;">
                     <button class="btn btn-sm btn-danger" onclick="removeItem(${order.id}, ${item.id})">×</button>
                 </div>
                 <div class="col-12 text-muted small">
                     ${item.quantity} × ${item.unit_price.toFixed(2)} = ${(item.quantity * item.unit_price).toFixed(2)} TL
-                </div>
-                ${itemNote ? `<div class="col-12 text-primary small"><strong>Not:</strong> ${itemNote}</div>` : ""}
+×</button>
             </div>
         `;
                 }
@@ -461,23 +440,18 @@ function renderOrderDetails(order) {
     const discountAmountInput = document.getElementById("discountAmount");
     const discountPercentInput = document.getElementById("discountPercent");
 
+    const hasItems = order.items.length > 0;
     paymentButtons.forEach(btn => {
-        btn.disabled = order.items.length === 0;
-        if (btn.dataset.method === order.payment_method && order.payment_method !== "pending") {
-            btn.style.opacity = "1";
-        } else {
-            btn.style.opacity = "0.6";
-        }
+        btn.classList.toggle("enabled", hasItems);
     });
 
     discountAmountInput.value = order.discount_amount || 0;
     discountPercentInput.value = order.discount_percent || 0;
 
-    // Update totals with discount
     updateOrderTotal(order);
 
-    document.getElementById("printBtn").disabled = order.items.length === 0;
-    document.getElementById("cancelBtn").disabled = false;
+    document.getElementById("printBtn").classList.toggle("enabled", hasItems);
+    document.getElementById("cancelBtn").classList.add("enabled");
 }
 
 async function addProductToOrder(productId) {
@@ -710,10 +684,21 @@ function startApp() {
     loadAllOrders(1);
     checkPrinterStatus();
 
-    // Product button clicks via event delegation (handles special chars in names)
+    // Product button clicks via event delegation
     document.getElementById("categoriesContainer").addEventListener("click", (e) => {
         const btn = e.target.closest("[data-product-id]");
         if (btn) addProductToOrder(Number(btn.dataset.productId));
+    });
+
+    // Item note edit via event delegation
+    document.getElementById("orderItems").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-edit-note]");
+        if (btn && currentOrderId) {
+            const itemId = Number(btn.dataset.editNote);
+            const row = btn.closest(".order-item-row");
+            const name = row?.querySelector(".order-item-name")?.childNodes[0]?.textContent?.trim() || "";
+            editItemNote(itemId, itemNotes[itemId] || "", name);
+        }
     });
 
     // All-orders table: detail open + mark paid via event delegation
@@ -774,7 +759,11 @@ function startApp() {
             document.getElementById("orderItems").innerHTML = '<p class="text-muted">Tamamlandı!</p>';
             document.getElementById("orderTitle").textContent = "Sipariş Seçin";
             document.getElementById("orderTotal").textContent = "0.00 TL";
-            document.getElementById("orders-tab").click();
+            // Switch to orders tab
+document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+document.querySelector('.tab-btn')?.classList.add('active');
+document.getElementById('orders-panel')?.classList.add('active');
 
             // Print immediately
             printOrder(orderId);
