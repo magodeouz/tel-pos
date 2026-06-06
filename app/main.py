@@ -8,7 +8,6 @@ from .models import Customer, Category, Product, Order, User
 from .routers import customers, products, orders, incoming_call, ws, reports
 from .routers import auth
 from .config import PORT, HOST
-from .routers.incoming_call import set_ws_manager
 from .security import get_current_user
 
 # Create tables
@@ -26,9 +25,6 @@ app.include_router(customers.router, dependencies=[Depends(get_current_user)])
 app.include_router(products.router, dependencies=[Depends(get_current_user)])
 app.include_router(orders.router, dependencies=[Depends(get_current_user)])
 app.include_router(reports.router, dependencies=[Depends(get_current_user)])
-
-# WebSocket manager
-set_ws_manager(ws.manager)
 
 # Static files
 base_path = Path(__file__).parent / "static"

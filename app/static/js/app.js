@@ -53,21 +53,21 @@ const API = {
     },
 };
 
-// WebSocket connection
-function initWebSocket() {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+// Poll for incoming calls every 3 seconds
+let _shownCallIds = new Set();
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "incoming_call") {
-            handleIncomingCall(data);
+async function pollIncomingCalls() {
+    try {
+        const calls = await API.get("/api/incoming-call/pending");
+        if (!Array.isArray(calls)) return;
+        for (const call of calls) {
+            if (_shownCallIds.has(call.id)) continue;
+            _shownCallIds.add(call.id);
+            handleIncomingCall({ ...call, type: "incoming_call" });
+            // Ack immediately so it won't show again on reload
+            await API.post(`/api/incoming-call/${call.id}/ack`, {});
         }
-    };
-
-    ws.onclose = () => {
-        setTimeout(() => initWebSocket(), 3000);
-    };
+    } catch (e) { /* ignore network errors */ }
 }
 
 function playIncomingCallRing() {
@@ -677,13 +677,13 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 });
 
 function startApp() {
-    initWebSocket();
+    pollIncomingCalls();
+    setInterval(pollIncomingCalls, 3000);
     loadCategories();
     loadOrders();
     loadCustomers();
     loadAllOrders(1);
     checkPrinterStatus();
-    setInterval(checkPrinterStatus, 5000);
 
     // Event listener for order note updates
     document.getElementById("orderNote").addEventListener("input", () => {

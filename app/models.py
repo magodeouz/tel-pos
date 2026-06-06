@@ -77,3 +77,12 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
+
+
+class IncomingCall(Base):
+    __tablename__ = "incoming_calls"
+
+    id = Column(Integer, primary_key=True)
+    phone = Column(String, index=True)
+    acknowledged = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
