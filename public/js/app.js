@@ -84,18 +84,23 @@ async function selectCariCustomer(customerId) {
     currentOrderId = null;
     resetOrderPanel();
     switchToOrdersTab();
-    printOrder(orderId);
+
+    // Reserve the print tab during the click gesture, then persist payment,
+    // status and customer link BEFORE loading the receipt so it shows the
+    // payment method and customer info.
+    const win = window.open('', '_blank');
 
     await Promise.all([
         API.patch(`/api/orders/${orderId}/payment`, { payment_method: 'cari' }),
         API.patch(`/api/orders/${orderId}/status`, { status: 'paid' }),
+        fetch(`/api/orders/${orderId}/customer`, {
+            method: 'PATCH',
+            headers: authHeaders(),
+            body: JSON.stringify({ customer_id: customerId }),
+        }),
     ]);
-    // Also link customer to order
-    await fetch(`/api/orders/${orderId}/customer`, {
-        method: 'PATCH',
-        headers: authHeaders(),
-        body: JSON.stringify({ customer_id: customerId }),
-    });
+
+    printOrder(orderId, win);
 
     loadOrders();
     loadAllOrders(1);
@@ -695,23 +700,24 @@ function renderAllOrders(orders) {
             <thead>
                 <tr>
                     <th style="width:8%">#</th>
-                    <th style="width:20%">Müşteri</th>
-                    <th style="width:18%">Tarih</th>
+                    <th style="width:18%">Müşteri</th>
+                    <th style="width:16%">Telefon</th>
+                    <th style="width:16%">Tarih</th>
                     <th style="width:8%">Ürün</th>
-                    <th style="width:12%">Toplam</th>
-                    <th style="width:14%">Durum</th>
-                    <th style="width:10%;text-align:center">İşlem</th>
+                    <th style="width:14%">Toplam</th>
+                    <th style="width:20%">Durum</th>
                 </tr>
             </thead>
             <tbody>
                 ${sortedOrders.map(order => {
-                    const customerName = order.customer_id && customers[order.customer_id]
-                        ? customers[order.customer_id].name
-                        : "—";
+                    const cust = order.customer_id ? customers[order.customer_id] : null;
+                    const customerName = cust ? cust.name : "—";
+                    const customerPhone = cust && cust.phone ? cust.phone : "—";
                     return `
                     <tr style="cursor: pointer;" data-order-detail-id="${order.id}">
                         <td><strong>#${order.id}</strong></td>
                         <td>${customerName}</td>
+                        <td>${customerPhone}</td>
                         <td><small>${fmtDateTime(order.created_at)}</small></td>
                         <td>${order.items.length}</td>
                         <td><strong>${fmt(order.total)} TL</strong></td>
@@ -724,9 +730,6 @@ function renderAllOrders(orders) {
                                         ? `<span class="status-badge status-paid">${getPaymentLabel(order.payment_method)}</span>`
                                         : `<span class="status-badge status-open">Açık</span>`
                             }
-                        </td>
-                        <td style="text-align:center;">
-                            <button class="action-btn enabled cancel-action" style="padding:2px 8px;font-size:.72rem;border-radius:4px;" data-open-detail="${order.id}">Aç</button>
                         </td>
                     </tr>
                     `;
@@ -948,8 +951,13 @@ async function removeItem(orderId, itemId) {
     loadAllOrders(allOrdersPage);
 }
 
-function printOrder(orderId) {
-    window.open(`/api/orders/${orderId}/receipt`, '_blank');
+function printOrder(orderId, win) {
+    const url = `/api/orders/${orderId}/receipt`;
+    // If a window was pre-opened during the click gesture, point it at the
+    // receipt now (lets us save the payment method first without the popup
+    // being blocked). Otherwise open a fresh tab.
+    if (win && !win.closed) win.location.href = url;
+    else window.open(url, '_blank');
     return true;
 }
 
@@ -1051,6 +1059,8 @@ document.getElementById("newOrderBtn").addEventListener("click", async (e) => {
 document.getElementById("printBtn").addEventListener("click", async () => {
     if (currentOrderId) {
         printOrder(currentOrderId);
+    } else {
+        alert("Yazdırmak için önce bir sipariş seçin.");
     }
 });
 
@@ -1249,14 +1259,17 @@ function startApp() {
             resetOrderPanel();
             switchToOrdersTab();
 
-            // Print immediately
-            printOrder(orderId);
+            // Reserve the print tab now (during the click gesture) so the
+            // popup blocker lets it through, then save the payment method
+            // BEFORE loading the receipt so it shows the correct payment.
+            const win = window.open('', '_blank');
 
-            // Send payment + status in parallel, refresh lists in background
             await Promise.all([
                 API.patch(`/api/orders/${orderId}/payment`, { payment_method: paymentMethod }),
                 API.patch(`/api/orders/${orderId}/status`, { status: "paid" }),
             ]);
+
+            printOrder(orderId, win);
 
             loadOrders();
             loadAllOrders(1);

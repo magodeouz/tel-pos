@@ -484,7 +484,8 @@ body {
   pointer-events: none;
 }
 .action-btn.enabled { opacity: 1; pointer-events: all; }
-.action-btn.print { background: #0ea5e9; color: #fff; }
+/* Print button is always clickable, regardless of order/item state. */
+.action-btn.print { background: #0ea5e9; color: #fff; opacity: 1; pointer-events: all; }
 .action-btn.print:hover { background: #0284c7; }
 .action-btn.cancel-action { background: #f1f5f9; color: #64748b; border: 1px solid var(--border); }
 .action-btn.cancel-action:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
