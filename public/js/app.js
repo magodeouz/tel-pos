@@ -1157,7 +1157,7 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 function startApp() {
     initWebSocket();
     // Periodic safety-net poll — catches anything WS missed (sleep, network blip)
-    setInterval(pollIncomingCalls, 8000);
+    setInterval(pollIncomingCalls, 3000);
     pollIncomingCalls(); // also poll once on startup
     loadCategories();
     loadOrders();
