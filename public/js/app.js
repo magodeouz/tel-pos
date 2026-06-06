@@ -13,10 +13,16 @@ function authHeaders(extra = {}) {
         : { "Content-Type": "application/json", ...extra };
 }
 
+function logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('username');
+    window.location.href = '/';
+}
+
 const API = {
     async get(url) {
         const res = await fetch(url, { headers: authHeaders() });
-        if (res.status === 401) { window.location.href = '/'; return {}; }
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async post(url, data) {
@@ -25,7 +31,7 @@ const API = {
             headers: authHeaders(),
             body: JSON.stringify(data),
         });
-        if (res.status === 401) { window.location.href = '/'; return {}; }
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async put(url, data) {
@@ -34,7 +40,7 @@ const API = {
             headers: authHeaders(),
             body: JSON.stringify(data),
         });
-        if (res.status === 401) { window.location.href = '/'; return {}; }
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async patch(url, data) {
@@ -43,12 +49,12 @@ const API = {
             headers: authHeaders(),
             body: JSON.stringify(data),
         });
-        if (res.status === 401) { window.location.href = '/'; return {}; }
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
     async delete(url) {
         const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
-        if (res.status === 401) { window.location.href = '/'; return {}; }
+        if (res.status === 401) { logout(); return {}; }
         return res.json();
     },
 };
@@ -75,7 +81,11 @@ function initWebSocket() {
 // Fallback polling (in case WS disconnects briefly)
 async function pollIncomingCalls() {
     try {
-        const calls = await API.get("/api/incoming-call/pending");
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        const res = await fetch("/api/incoming-call/pending", { headers: authHeaders() });
+        if (!res.ok) return; // 401 veya başka hata — redirect yok, sessizce atla
+        const calls = await res.json();
         if (!Array.isArray(calls)) return;
         for (const call of calls) {
             if (_shownCallIds.has(call.id)) continue;
