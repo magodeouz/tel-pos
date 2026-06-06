@@ -174,6 +174,7 @@ body {
 /* ── Left: Orders ───────────────────────────────────────── */
 .panel-left { grid-row: 1; grid-column: 1; }
 
+
 .tab-btns {
   display: flex;
   gap: 4px;
@@ -313,7 +314,8 @@ body {
 }
 
 /* ── Right: Order detail ────────────────────────────────── */
-.panel-right { grid-row: 1; grid-column: 3; }
+/* Right panel spans both rows — full screen height */
+.panel-right { grid-row: 1 / 3; grid-column: 3; }
 
 .order-items-list { }
 
@@ -487,9 +489,10 @@ body {
 .action-btn.cancel-action:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
 
 /* ── Bottom: All orders ─────────────────────────────────── */
+/* Bottom panel only under left + center — not under right */
 .panel-bottom {
   grid-row: 2;
-  grid-column: 1 / -1;
+  grid-column: 1 / 3;
 }
 
 .orders-table {
