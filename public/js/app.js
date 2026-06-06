@@ -360,7 +360,10 @@ function initWebSocket() {
 }
 
 // Safety net polling — runs on WS reconnect + visibility change
+let _polling = false;
 async function pollIncomingCalls() {
+    if (_polling) return; // don't stack requests if a poll is still in flight
+    _polling = true;
     try {
         const token = localStorage.getItem('access_token');
         if (!token) return;
@@ -369,14 +372,16 @@ async function pollIncomingCalls() {
         const calls = await res.json();
         if (!Array.isArray(calls)) return;
         for (const call of calls) {
+            // Always ack — even if already shown via WS — so it leaves the
+            // pending list and the backend stops re-resolving it every poll.
+            fetch(`/api/incoming-call/${call.id}/ack`, { method: 'POST', headers: authHeaders() });
             // Dedup is handled inside queueIncomingCall — don't pre-add here,
             // otherwise queueIncomingCall sees the id and returns without showing.
             if (_shownCallIds.has(call.id)) continue;
             queueIncomingCall({ ...call, type: "incoming_call" });
-            // ack so it won't reappear on next poll
-            fetch(`/api/incoming-call/${call.id}/ack`, { method: 'POST', headers: authHeaders() });
         }
     } catch (e) { /* ignore */ }
+    finally { _polling = false; }
 }
 
 // Poll when tab becomes visible again (catches sleep/background)
@@ -403,26 +408,27 @@ function queueIncomingCall(data) {
     }
 }
 
+// Single reused AudioContext — creating one per call leaks resources
+// (browsers cap at ~6) and eventually freezes the panel.
+let _audioCtx = null;
 function playIncomingCallRing() {
     try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const now = audioContext.currentTime;
+        if (!_audioCtx) {
+            _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (_audioCtx.state === 'suspended') _audioCtx.resume();
 
-        // Create 3 beeps for ring effect
+        const now = _audioCtx.currentTime;
         for (let i = 0; i < 3; i++) {
-            const osc = audioContext.createOscillator();
-            const gain = audioContext.createGain();
-
+            const osc = _audioCtx.createOscillator();
+            const gain = _audioCtx.createGain();
             osc.connect(gain);
-            gain.connect(audioContext.destination);
-
+            gain.connect(_audioCtx.destination);
             osc.frequency.value = 800 + (i * 100);
             osc.type = 'sine';
-
             const startTime = now + (i * 0.5);
             gain.gain.setValueAtTime(0.3, startTime);
             gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
-
             osc.start(startTime);
             osc.stop(startTime + 0.3);
         }
