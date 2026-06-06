@@ -42,6 +42,27 @@
             margin-top: 0.5rem;
             text-align: center;
         }
+        .lockout-box {
+            display: none;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            margin-top: 0.75rem;
+        }
+        .lockout-box .countdown {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #856404;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+        }
+        .lockout-box p {
+            margin: 0.25rem 0 0;
+            font-size: 0.82rem;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
@@ -63,7 +84,11 @@
                 <input type="password" class="form-control form-control-lg" id="password"
                        placeholder="••••••••" autocomplete="current-password" required>
             </div>
-            <div id="errorMsg" class="error-msg">Kullanıcı adı veya şifre yanlış</div>
+            <div id="errorMsg" class="error-msg"></div>
+            <div class="lockout-box" id="lockoutBox">
+                <div class="countdown" id="countdownDisplay">5:00</div>
+                <p>Çok fazla hatalı giriş. Lütfen bekleyin.</p>
+            </div>
             <button type="submit" class="btn btn-dark btn-lg w-100 mt-2" id="loginBtn">
                 Giriş Yap
             </button>
@@ -74,6 +99,37 @@
         // If already logged in, go to pos
         if (localStorage.getItem('access_token')) {
             window.location.href = '/pos';
+        }
+
+        let _countdownTimer = null;
+
+        function startCountdown(seconds) {
+            const btn = document.getElementById('loginBtn');
+            const box = document.getElementById('lockoutBox');
+            const display = document.getElementById('countdownDisplay');
+
+            box.style.display = 'block';
+            btn.disabled = true;
+            btn.textContent = 'Bekleyin...';
+
+            clearInterval(_countdownTimer);
+            let remaining = seconds;
+
+            function tick() {
+                const m = Math.floor(remaining / 60);
+                const s = remaining % 60;
+                display.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+                if (remaining <= 0) {
+                    clearInterval(_countdownTimer);
+                    box.style.display = 'none';
+                    btn.disabled = false;
+                    btn.textContent = 'Giriş Yap';
+                }
+                remaining--;
+            }
+
+            tick();
+            _countdownTimer = setInterval(tick, 1000);
         }
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -97,8 +153,11 @@
                 if (res.ok) {
                     const data = await res.json();
                     localStorage.setItem('access_token', data.access_token);
-                    localStorage.setItem('username', username);
+                    localStorage.setItem('username', data.username || username);
                     window.location.href = '/pos';
+                } else if (res.status === 429) {
+                    const errData = await res.json().catch(() => ({}));
+                    startCountdown(errData.retry_after || 300);
                 } else {
                     const errData = await res.json().catch(() => ({}));
                     errorMsg.textContent = errData.detail || 'Kullanıcı adı veya şifre yanlış';

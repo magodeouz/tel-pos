@@ -6,7 +6,7 @@ import { verifyPassword, hashPassword, createToken } from '../security'
 import type { Env } from '../worker'
 
 const MAX_ATTEMPTS = 5
-const WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+const WINDOW_MS = 5 * 60 * 1000 // 5 minutes
 
 async function checkRateLimit(d1: D1Database, ip: string): Promise<boolean> {
   const now = Date.now()
@@ -35,8 +35,11 @@ const auth = new Hono<{ Bindings: Env }>()
 
 auth.post('/login', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? 'unknown'
-  if (!await checkRateLimit(c.env.DB, ip)) {
-    return c.json({ detail: '15 dakika içinde çok fazla hatalı giriş. Lütfen bekleyin.' }, 429)
+  const rateOk = await checkRateLimit(c.env.DB, ip)
+  if (!rateOk) {
+    const row = await c.env.DB.prepare('SELECT reset_at FROM login_attempts WHERE ip = ?').bind(ip).first<{reset_at: number}>()
+    const retryAfter = row ? Math.max(0, Math.ceil((row.reset_at - Date.now()) / 1000)) : 300
+    return c.json({ detail: 'Çok fazla hatalı giriş.', retry_after: retryAfter }, 429)
   }
 
   const { username, password } = await c.req.json()
