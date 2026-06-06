@@ -62,40 +62,72 @@ const API = {
 
 // WebSocket for real-time incoming call notifications
 let _ws = null;
-let _shownCallIds = new Set();
+let _shownCallIds = new Set();   // dedup by DB id (polling)
+let _shownPhones = new Map();    // dedup by phone+time for WS (no id)
+let _callQueue = [];             // queue when modal is already open
+let _modalOpen = false;
 
 function initWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     _ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
     _ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'incoming_call') {
-            handleIncomingCall(data);
-        }
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'incoming_call') queueIncomingCall(data);
+        } catch (e) {}
     };
 
-    _ws.onopen = () => document.getElementById('wsStatus')?.classList.add('connected');
-    _ws.onclose = () => { document.getElementById('wsStatus')?.classList.remove('connected'); setTimeout(initWebSocket, 3000); };
+    _ws.onopen = () => {
+        document.getElementById('wsStatus')?.classList.add('connected');
+        // Catch any calls that arrived during disconnect
+        pollIncomingCalls();
+    };
+    _ws.onclose = () => {
+        document.getElementById('wsStatus')?.classList.remove('connected');
+        setTimeout(initWebSocket, 3000);
+    };
     _ws.onerror = () => _ws.close();
 }
 
-// Fallback polling (in case WS disconnects briefly)
+// Safety net polling — runs on WS reconnect + visibility change
 async function pollIncomingCalls() {
     try {
         const token = localStorage.getItem('access_token');
         if (!token) return;
         const res = await fetch("/api/incoming-call/pending", { headers: authHeaders() });
-        if (!res.ok) return; // 401 veya başka hata — redirect yok, sessizce atla
+        if (!res.ok) return;
         const calls = await res.json();
         if (!Array.isArray(calls)) return;
         for (const call of calls) {
             if (_shownCallIds.has(call.id)) continue;
             _shownCallIds.add(call.id);
-            handleIncomingCall({ ...call, type: "incoming_call" });
-            await API.post(`/api/incoming-call/${call.id}/ack`, {});
+            queueIncomingCall({ ...call, type: "incoming_call" });
+            // ack so it won't reappear on next poll
+            fetch(`/api/incoming-call/${call.id}/ack`, { method: 'POST', headers: authHeaders() });
         }
     } catch (e) { /* ignore */ }
+}
+
+// Poll when tab becomes visible again (catches sleep/background)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) pollIncomingCalls();
+});
+
+function queueIncomingCall(data) {
+    // Dedup WS calls (no id) by phone within 10 seconds
+    if (!data.id) {
+        const key = data.phone;
+        const lastSeen = _shownPhones.get(key) || 0;
+        if (Date.now() - lastSeen < 10000) return;
+        _shownPhones.set(key, Date.now());
+    }
+    if (_modalOpen) {
+        // Queue it — show after current modal closes
+        _callQueue.push(data);
+    } else {
+        handleIncomingCall(data);
+    }
 }
 
 function playIncomingCallRing() {
@@ -127,9 +159,7 @@ function playIncomingCallRing() {
 }
 
 function handleIncomingCall(data) {
-    // Deduplicate: WS and polling might both deliver the same call
-    if (data.id && _shownCallIds.has(data.id)) return;
-    if (data.id) _shownCallIds.add(data.id);
+    _modalOpen = true;
     incomingCallData = data;
     playIncomingCallRing();
     document.getElementById("callPhone").textContent = data.phone;
@@ -187,7 +217,18 @@ function handleIncomingCall(data) {
         newCustomerInfo.style.display = "block";
     }
 
-    const modal = new bootstrap.Modal(document.getElementById("incomingCallModal"));
+    const modalEl = document.getElementById("incomingCallModal");
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    // When this modal closes, show next queued call (if any)
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        _modalOpen = false;
+        if (_callQueue.length > 0) {
+            const next = _callQueue.shift();
+            setTimeout(() => handleIncomingCall(next), 400);
+        }
+    }, { once: true });
+
     modal.show();
 }
 
@@ -746,6 +787,8 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 
 function startApp() {
     initWebSocket();
+    // Periodic safety-net poll — catches anything WS missed (sleep, network blip)
+    setInterval(pollIncomingCalls, 30000);
     loadCategories();
     loadOrders();
     loadCustomers();
