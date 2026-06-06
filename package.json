@@ -2,6 +2,7 @@
   "name": "tel-pos",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "tsx watch api/index.ts",
     "build": "prisma generate",
