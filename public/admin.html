@@ -1,76 +1,79 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow">
-    <title>EFE POS Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>EFE POS — Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/mgmt.css">
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="navbar-brand mb-0 h1 d-flex align-items-center">
-            <img src="/logo.svg" alt="EFE POS" height="40" class="me-2">
-            <span>EFE POS Admin</span>
-        </div>
-        <a href="/" class="btn btn-outline-light">← POS'a Dön</a>
-    </nav>
+<body>
 
-    <div class="container mt-4">
-        <div class="row">
-            <!-- Categories -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">Kategoriler</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="categoryForm" class="mb-3">
-                            <div class="mb-2">
-                                <input type="text" class="form-control" id="categoryName" placeholder="Kategori adı" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Ekle</button>
-                        </form>
-                        <div id="categoriesList"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Products -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">Ürünler</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="productForm" class="mb-3">
-                            <div class="mb-2">
-                                <select class="form-select" id="productCategory" required>
-                                    <option value="">Kategori seçin</option>
-                                </select>
-                            </div>
-                            <div class="mb-2">
-                                <input type="text" class="form-control" id="productName" placeholder="Ürün adı" required>
-                            </div>
-                            <div class="mb-2">
-                                <input type="number" class="form-control" id="productPrice" placeholder="Fiyat" step="0.01" required>
-                            </div>
-                            <div class="mb-2">
-                                <textarea class="form-control" id="productNote" placeholder="Not (isteğe bağlı)" rows="2"></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Ekle</button>
-                        </form>
-                        <div id="productsList"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <nav class="mgmt-nav">
+    <div class="brand">
+      <img src="/logo.svg" alt="" onerror="this.style.display='none'">
+      EFE POS — Admin
     </div>
+    <div class="nav-spacer"></div>
+    <a href="/pos" class="back-btn">← POS'a Dön</a>
+  </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        if (!localStorage.getItem('access_token')) { window.location.href = '/'; }
-    </script>
-    <script src="/js/admin.js"></script>
+  <div class="mgmt-body">
+    <div class="two-col">
+
+      <!-- Kategoriler -->
+      <div class="mgmt-card">
+        <div class="mgmt-card-header">
+          <span class="mgmt-card-title">🏷️ Kategoriler</span>
+        </div>
+        <div class="mgmt-card-body">
+          <form id="categoryForm" class="mgmt-form" style="flex-direction:row;gap:8px;margin-bottom:16px;">
+            <input type="text" class="form-input" id="categoryName" placeholder="Yeni kategori adı" required style="flex:1">
+            <button type="submit" class="btn btn-primary">Ekle</button>
+          </form>
+          <div id="categoriesList"><p class="text-muted" style="font-size:.83rem;">Yükleniyor...</p></div>
+        </div>
+      </div>
+
+      <!-- Ürünler -->
+      <div class="mgmt-card">
+        <div class="mgmt-card-header">
+          <span class="mgmt-card-title">📦 Ürünler</span>
+        </div>
+        <div class="mgmt-card-body">
+          <form id="productForm" class="mgmt-form" style="margin-bottom:16px;">
+            <div class="form-group">
+              <label class="form-label">Kategori</label>
+              <select class="form-select" id="productCategory" required>
+                <option value="">Kategori seçin</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ürün Adı</label>
+              <input type="text" class="form-input" id="productName" placeholder="Örn: Çay" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fiyat (₺)</label>
+              <input type="number" class="form-input" id="productPrice" placeholder="0.00" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Not</label>
+              <textarea class="form-textarea" id="productNote" placeholder="İsteğe bağlı" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Ürün Ekle</button>
+          </form>
+          <div id="productsList"><p class="text-muted" style="font-size:.83rem;">Yükleniyor...</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    if (!localStorage.getItem('access_token')) { window.location.href = '/'; }
+  </script>
+  <script src="/js/admin.js"></script>
 </body>
 </html>

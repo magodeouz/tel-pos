@@ -94,24 +94,20 @@ function renderProductsTable() {
 
     tbody.innerHTML = filteredProducts.map(product => {
         const activeStatus = product.active
-            ? '<span class="badge bg-success">Aktif</span>'
-            : '<span class="badge bg-danger">Pasif</span>';
+            ? '<span class="badge badge-green">Aktif</span>'
+            : '<span class="badge badge-red">Pasif</span>';
 
         return `
             <tr>
-                <td>${product.id}</td>
+                <td style="color:#64748b">${product.id}</td>
                 <td><strong>${product.name}</strong></td>
-                <td>${product.category_name}</td>
-                <td>${product.price.toFixed(2)} TL</td>
-                <td>${product.note ? `<small>${product.note}</small>` : '<span class="text-muted">-</span>'}</td>
+                <td><span class="badge badge-blue">${product.category_name}</span></td>
+                <td><strong>${product.price.toFixed(2)} ₺</strong></td>
+                <td style="color:#64748b;font-size:.78rem">${product.note || '—'}</td>
                 <td>${activeStatus}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="openEditProductModal(${product.id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${product.id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                <td style="text-align:center">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditProductModal(${product.id})" title="Düzenle">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})" title="Sil">🗑</button>
                 </td>
             </tr>
         `;
@@ -389,16 +385,12 @@ function renderCategoriesTable(categories) {
         .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
         .map(cat => `
             <tr>
-                <td>${cat.id}</td>
-                <td>${cat.name}</td>
-                <td>${cat.sort_order || 1}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="editCategory(${cat.id}, '${cat.name}', ${cat.sort_order || 1})">
-                        <i class="bi bi-pencil"></i> Düzenle
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${cat.id})">
-                        <i class="bi bi-trash"></i> Sil
-                    </button>
+                <td style="color:#64748b">${cat.id}</td>
+                <td><strong>${cat.name}</strong></td>
+                <td><span class="badge badge-blue">${cat.sort_order || 1}</span></td>
+                <td style="text-align:center">
+                    <button class="btn btn-ghost btn-sm" onclick="editCategory(${cat.id}, '${cat.name.replace(/'/g,"\\'")}', ${cat.sort_order || 1})" title="Düzenle">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCategory(${cat.id})" title="Sil">🗑</button>
                 </td>
             </tr>
         `)
@@ -477,11 +469,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadProductSalesAnalysis();
     await loadCustomerSpendingAnalysis();
 
-    // Load reports when switching tabs
-    document.getElementById("sales-report-tab").addEventListener("shown.bs.tab", loadSalesReport);
-    document.getElementById("product-analysis-tab").addEventListener("shown.bs.tab", loadProductSalesAnalysis);
-    document.getElementById("customer-analysis-tab").addEventListener("shown.bs.tab", loadCustomerSpendingAnalysis);
+    // Report sub-tab clicks → reload data
+    document.getElementById("sales-report-tab")?.addEventListener("click", loadSalesReport);
+    document.getElementById("product-analysis-tab")?.addEventListener("click", loadProductSalesAnalysis);
+    document.getElementById("customer-analysis-tab")?.addEventListener("click", loadCustomerSpendingAnalysis);
 
-    // Load categories when switching to categories tab
-    document.getElementById("categories-tab").addEventListener("shown.bs.tab", loadCategoriesList);
+    // Main tab: categories
+    document.querySelector('.mgmt-tab[data-tab="categories"]')?.addEventListener("click", loadCategoriesList);
 });
