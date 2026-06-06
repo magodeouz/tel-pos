@@ -33,6 +33,11 @@ app.get('/ws', (c) => {
 app.route('/api/auth', authRoute)
 app.get('/api/health', (c) => c.json({ ok: true }))
 app.get('/api/printer/status', (c) => c.json({ connected: false }))
+// Receipt is public — window.open() can't send Authorization headers
+app.get('/api/orders/:id/receipt', (c) => ordersRoute.fetch(
+  new Request(c.req.url.replace('/api/orders', '/'), c.req.raw),
+  c.env
+))
 app.post('/api/incoming-call', (c) => incomingCallRoute.fetch(
   new Request(c.req.url.replace('/api/incoming-call', '/'), c.req.raw),
   c.env
