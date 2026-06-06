@@ -1116,6 +1116,37 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 
+// ── Auto day-close at 23:59 Istanbul time ───────────────────────
+// The receipt printer is attached to this computer, not the cloud, so the
+// closing report can only be printed from an open POS screen. While the page
+// is open we check the Istanbul clock and, once per day at 23:59, open the
+// day-close report (it auto-prints itself). localStorage guards against
+// printing twice if the page is reloaded within that minute.
+function istanbulNowParts() {
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Istanbul', hourCycle: 'h23',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+    });
+    const p = {};
+    for (const part of fmt.formatToParts(new Date())) p[part.type] = part.value;
+    return p; // { year, month, day, hour, minute }
+}
+
+function checkAutoDayClose() {
+    const p = istanbulNowParts();
+    if (p.hour === '23' && p.minute === '59') {
+        const today = `${p.year}-${p.month}-${p.day}`;
+        if (localStorage.getItem('lastDayClose') !== today) {
+            localStorage.setItem('lastDayClose', today);
+            window.open('/api/reports/day-close', '_blank');
+        }
+    }
+}
+
+setInterval(checkAutoDayClose, 20000);
+checkAutoDayClose();
+
 // Pagination event listeners
 document.getElementById("prevPageBtn").addEventListener("click", (e) => {
     e.preventDefault();
