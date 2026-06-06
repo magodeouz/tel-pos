@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         showLastCallStatus()
+        checkPermissionStatus()
     }
 
     private fun showLastCallStatus() {
@@ -58,6 +59,21 @@ class MainActivity : AppCompatActivity() {
         }
         if (permissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, permissions.toTypedArray(), PERMISSION_REQUEST_CODE)
+        } else {
+            // Both permissions granted
+            checkPermissionStatus()
+        }
+    }
+
+    private fun checkPermissionStatus() {
+        val phoneOk = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        val callLogOk = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED
+        if (!phoneOk || !callLogOk) {
+            Toast.makeText(
+                this,
+                "⚠️ UYARI: READ_CALL_LOG izni olmadan telefon numarası okunamaz! Ayarlar > Uygulamalar > Tel POS > İzinler'den verin.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
