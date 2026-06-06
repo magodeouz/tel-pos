@@ -6,8 +6,23 @@ import type { Env } from '../worker'
 
 const app = new Hono<{ Bindings: Env }>()
 
+// Keep only digits, compare last 10 (ignores +90, 0 prefix, spaces, dashes)
+function phoneKey(p: string): string {
+  return (p || '').replace(/\D/g, '').slice(-10)
+}
+
 async function buildCustomerData(db: ReturnType<typeof getDb>, phone: string) {
-  const [customer] = await db.select().from(customers).where(eq(customers.phone, phone)).limit(1)
+  // Try exact match first (fast path)
+  let [customer] = await db.select().from(customers).where(eq(customers.phone, phone)).limit(1)
+
+  // Fallback: normalized match by last 10 digits
+  if (!customer) {
+    const target = phoneKey(phone)
+    if (target.length >= 7) {
+      const all = await db.select().from(customers)
+      customer = all.find(c => phoneKey(c.phone) === target) as typeof customer
+    }
+  }
   if (!customer) return null
 
   const recentOrders = await db.select({

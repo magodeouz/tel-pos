@@ -353,8 +353,9 @@ async function pollIncomingCalls() {
         const calls = await res.json();
         if (!Array.isArray(calls)) return;
         for (const call of calls) {
+            // Dedup is handled inside queueIncomingCall — don't pre-add here,
+            // otherwise queueIncomingCall sees the id and returns without showing.
             if (_shownCallIds.has(call.id)) continue;
-            _shownCallIds.add(call.id);
             queueIncomingCall({ ...call, type: "incoming_call" });
             // ack so it won't reappear on next poll
             fetch(`/api/incoming-call/${call.id}/ack`, { method: 'POST', headers: authHeaders() });
