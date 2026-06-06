@@ -340,6 +340,8 @@ let _shownPhones = new Map();    // dedup by phone+time for WS (no id)
 let _callQueue = [];             // queue when modal is already open
 let _modalOpen = false;
 
+let _wsPingTimer = null;
+
 function initWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     _ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
@@ -355,9 +357,22 @@ function initWebSocket() {
         document.getElementById('wsStatus')?.classList.add('connected');
         // Catch any calls that arrived during disconnect
         pollIncomingCalls();
+        // Keepalive: a dead TCP link may never fire onclose. A failing send
+        // throws synchronously → we tear down and reconnect.
+        clearInterval(_wsPingTimer);
+        _wsPingTimer = setInterval(() => {
+            try {
+                if (_ws && _ws.readyState === WebSocket.OPEN) _ws.send('ping');
+                else { clearInterval(_wsPingTimer); _ws?.close(); }
+            } catch (e) {
+                clearInterval(_wsPingTimer);
+                try { _ws?.close(); } catch (_) {}
+            }
+        }, 25000);
     };
     _ws.onclose = () => {
         document.getElementById('wsStatus')?.classList.remove('connected');
+        clearInterval(_wsPingTimer);
         setTimeout(initWebSocket, 3000);
     };
     _ws.onerror = () => _ws.close();

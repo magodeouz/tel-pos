@@ -60,26 +60,30 @@ async function buildCustomerData(db: ReturnType<typeof getDb>, phone: string) {
 // Public — APK uses this
 app.post('/', async (c) => {
   const db = getDb(c.env.DB)
-  const { phone } = await c.req.json()
-  const trimmed = phone.trim()
 
-  // Store call in DB
-  await db.insert(incomingCalls).values({ phone: trimmed })
+  // Guard: bad/empty body must not 500 the APK
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ detail: 'Geçersiz istek' }, 400) }
+  const trimmed = (body?.phone ?? '').toString().trim()
+  if (!trimmed) return c.json({ detail: 'Telefon gerekli' }, 400)
 
-  // Get the inserted call ID so browser can dedup with polling
-  const [inserted] = await db.select({ id: incomingCalls.id })
-    .from(incomingCalls)
-    .orderBy(desc(incomingCalls.id))
-    .limit(1)
+  // Insert and get the real id atomically via RETURNING (no race with
+  // a separate "max id" query under concurrent calls)
+  const [inserted] = await db.insert(incomingCalls).values({ phone: trimmed }).returning({ id: incomingCalls.id })
 
-  // Broadcast via Durable Object WebSocket
-  const hub = c.env.CALL_HUB.get(c.env.CALL_HUB.idFromName('main'))
+  // Resolve customer, then broadcast. Broadcast failure must not fail the
+  // APK request — the call is already in DB and polling will catch it.
   const customerData = await buildCustomerData(db, trimmed)
-  await hub.fetch(new Request('https://hub/broadcast', {
-    method: 'POST',
-    body: JSON.stringify({ type: 'incoming_call', id: inserted?.id, phone: trimmed, customer: customerData }),
-    headers: { 'Content-Type': 'application/json' },
-  }))
+  try {
+    const hub = c.env.CALL_HUB.get(c.env.CALL_HUB.idFromName('main'))
+    await hub.fetch(new Request('https://hub/broadcast', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'incoming_call', id: inserted?.id, phone: trimmed, customer: customerData }),
+      headers: { 'Content-Type': 'application/json' },
+    }))
+  } catch (e) {
+    // swallow — DB row exists, poll fallback will deliver it
+  }
 
   return c.json({ ok: true, customer: customerData, found: !!customerData })
 })
