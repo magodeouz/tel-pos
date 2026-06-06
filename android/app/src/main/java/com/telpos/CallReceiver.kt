@@ -29,6 +29,7 @@ class CallReceiver : BroadcastReceiver() {
 
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
 
