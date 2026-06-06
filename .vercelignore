@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.local
+tel_pos.db
+*.db
+android/
+Dockerfile*
+requirements-dev.txt

@@ -6,37 +6,49 @@ let allOrdersPage = 1;
 let allOrdersPages = 1;
 let itemNotes = {}; // Track notes for items: { item_id: "note text" }
 
+function authHeaders(extra = {}) {
+    const token = localStorage.getItem('access_token');
+    return token
+        ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, ...extra }
+        : { "Content-Type": "application/json", ...extra };
+}
+
 const API = {
     async get(url) {
-        const res = await fetch(url);
+        const res = await fetch(url, { headers: authHeaders() });
+        if (res.status === 401) { window.location.href = '/'; return {}; }
         return res.json();
     },
     async post(url, data) {
         const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify(data),
         });
+        if (res.status === 401) { window.location.href = '/'; return {}; }
         return res.json();
     },
     async put(url, data) {
         const res = await fetch(url, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify(data),
         });
+        if (res.status === 401) { window.location.href = '/'; return {}; }
         return res.json();
     },
     async patch(url, data) {
         const res = await fetch(url, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify(data),
         });
+        if (res.status === 401) { window.location.href = '/'; return {}; }
         return res.json();
     },
     async delete(url) {
-        const res = await fetch(url, { method: "DELETE" });
+        const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
+        if (res.status === 401) { window.location.href = '/'; return {}; }
         return res.json();
     },
 };
@@ -465,14 +477,9 @@ async function removeItem(orderId, itemId) {
     loadOrders();
 }
 
-async function printOrder(orderId) {
-    try {
-        const result = await API.post(`/api/orders/${orderId}/print`, {});
-        return result.ok;
-    } catch (e) {
-        console.error("Print error:", e);
-        return false;
-    }
+function printOrder(orderId) {
+    window.open(`/api/orders/${orderId}/receipt`, '_blank');
+    return true;
 }
 
 function updateOrderTotal(order) {
@@ -545,16 +552,8 @@ async function markOrderAsPaid(orderId) {
     loadAllOrders(allOrdersPage);
 }
 
-async function checkPrinterStatus() {
-    const status = await API.get("/api/printer/status");
-    const badge = document.getElementById("printerStatus");
-    if (status.ok) {
-        badge.textContent = `Yazıcı: ${status.device || "Bağlı"}`;
-        badge.className = "badge bg-success";
-    } else {
-        badge.textContent = "Yazıcı: Hata";
-        badge.className = "badge bg-danger";
-    }
+function checkPrinterStatus() {
+    // Browser print — no status needed
 }
 
 // Event listeners
@@ -567,21 +566,7 @@ document.getElementById("newOrderBtn").addEventListener("click", async () => {
 
 document.getElementById("printBtn").addEventListener("click", async () => {
     if (currentOrderId) {
-        const result = await API.post(`/api/orders/${currentOrderId}/print`, {});
-        if (result.ok) {
-            alert("Yazıldı! Sipariş geçmiş siparişlere taşındı.");
-            // Move order to paid status
-            await API.patch(`/api/orders/${currentOrderId}/status`, { status: "paid" });
-            currentOrderId = null;
-            loadOrders();
-            document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
-            document.getElementById("orderTitle").textContent = "Sipariş Seçin";
-            document.getElementById("orderTotal").textContent = "0.00 TL";
-            document.getElementById("orderNote").value = "";
-            document.getElementById("orderNote").disabled = true;
-        } else {
-            alert("Yazıcı hatası: " + result.error);
-        }
+        printOrder(currentOrderId);
     }
 });
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
@@ -283,3 +284,68 @@ def update_discount(order_id: int, discount: DiscountUpdate, db: Session = Depen
         "discount_amount": order.discount_amount,
         "discount_percent": order.discount_percent,
     }
+
+
+@router.get("/{order_id}/receipt", response_class=HTMLResponse)
+def get_order_receipt(order_id: int, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Sipariş bulunamadı")
+
+    subtotal = sum(item.quantity * item.unit_price for item in order.items)
+    discount_val = order.discount_amount or 0
+    if order.discount_percent:
+        discount_val += subtotal * (order.discount_percent / 100)
+    total = max(0, subtotal - discount_val)
+
+    items_html = "".join(
+        f'<div class="item"><span>{item.product.name} x{item.quantity}</span><span>{item.quantity * item.unit_price:.2f} TL</span></div>'
+        for item in order.items
+    )
+
+    discount_html = ""
+    if discount_val > 0:
+        discount_html = f'<div class="item" style="color:#c00"><span>İndirim</span><span>-{discount_val:.2f} TL</span></div>'
+
+    note_html = f'<p style="font-size:0.8em;color:#666">Not: {order.note}</p>' if order.note else ""
+    payment_map = {"nakit": "Nakit", "kredi_karti": "Kredi Kartı", "cari": "Cari", "odenmes": "Ödenmez", "pending": "-"}
+    payment_label = payment_map.get(order.payment_method or "pending", order.payment_method or "-")
+
+    html = f"""<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <title>Sipariş #{order.id}</title>
+    <style>
+        @media print {{
+            body {{ margin: 0; }}
+            .no-print {{ display: none; }}
+        }}
+        body {{ font-family: monospace; width: 80mm; max-width: 80mm; margin: 0 auto; padding: 10px; font-size: 13px; }}
+        h2 {{ text-align: center; margin: 0 0 4px; font-size: 16px; }}
+        .center {{ text-align: center; }}
+        hr {{ border: none; border-top: 1px dashed #000; margin: 6px 0; }}
+        .item {{ display: flex; justify-content: space-between; margin: 2px 0; }}
+        .total {{ font-weight: bold; font-size: 15px; }}
+        .btn {{ display: block; width: 100%; padding: 8px; background: #333; color: #fff; border: none; cursor: pointer; font-size: 14px; margin-top: 12px; border-radius: 4px; }}
+    </style>
+</head>
+<body>
+    <h2>EFE POS</h2>
+    <p class="center" style="margin:2px 0;font-size:11px">Sipariş #{order.id} &nbsp;|&nbsp; {order.created_at.strftime('%d.%m.%Y %H:%M')}</p>
+    <hr>
+    {items_html}
+    <hr>
+    {discount_html}
+    <div class="item total"><span>TOPLAM</span><span>{total:.2f} TL</span></div>
+    <div class="item" style="font-size:11px;color:#555"><span>Ödeme</span><span>{payment_label}</span></div>
+    {note_html}
+    <hr>
+    <p class="center" style="font-size:11px">Teşekkür ederiz!</p>
+    <div class="no-print">
+        <button class="btn" onclick="window.print()">🖨️ Yazdır</button>
+    </div>
+    <script>window.onload = function() {{ window.print(); }}</script>
+</body>
+</html>"""
+    return HTMLResponse(content=html)

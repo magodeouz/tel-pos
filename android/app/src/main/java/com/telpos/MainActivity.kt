@@ -56,8 +56,7 @@ class MainActivity : AppCompatActivity() {
             binding.editIP.setText(parts[0])
             binding.editPort.setText(parts[1])
         } else {
-            // Default to Cloudflare Tunnel
-            binding.editIP.setText("tel-pos.lumoria.tr")
+            binding.editIP.setText("tel-pos.vercel.app")
             binding.editPort.setText("443")
         }
     }
@@ -91,7 +90,7 @@ class MainActivity : AppCompatActivity() {
 
         Thread {
             try {
-                val url = URL("$serverUrl/api/printer/status")
+                val url = URL("$serverUrl/api/printer/status")  // public endpoint
                 val connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = 3000
                 connection.readTimeout = 3000

@@ -1,43 +1,37 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, PlainTextResponse
-import webbrowser
-import os
-import sys
 from pathlib import Path
 
 from .database import engine, Base
-from .models import Customer, Category, Product, Order
+from .models import Customer, Category, Product, Order, User
 from .routers import customers, products, orders, incoming_call, ws, reports
-from .printer import PrinterController
+from .routers import auth
 from .config import PORT, HOST
 from .routers.incoming_call import set_ws_manager
+from .security import get_current_user
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Tel-POS")
 
-# Initialize printer
-printer = PrinterController()
-
-# Register routers
-app.include_router(customers.router)
-app.include_router(products.router)
-app.include_router(orders.router)
-app.include_router(incoming_call.router)
+# Public routes (no auth required)
+app.include_router(auth.router)
+app.include_router(incoming_call.router)  # APK uses this without token
 app.include_router(ws.router)
-app.include_router(reports.router)
+
+# Protected routes
+app.include_router(customers.router, dependencies=[Depends(get_current_user)])
+app.include_router(products.router, dependencies=[Depends(get_current_user)])
+app.include_router(orders.router, dependencies=[Depends(get_current_user)])
+app.include_router(reports.router, dependencies=[Depends(get_current_user)])
 
 # WebSocket manager
 set_ws_manager(ws.manager)
 
-# Static files - resolve path for PyInstaller
-if getattr(sys, "frozen", False):
-    base_path = Path(sys._MEIPASS) / "app" / "static"
-else:
-    base_path = Path(__file__).parent / "static"
-
+# Static files
+base_path = Path(__file__).parent / "static"
 if base_path.exists():
     app.mount("/static", StaticFiles(directory=base_path), name="static")
 
@@ -50,10 +44,18 @@ async def robots():
 
 @app.get("/")
 async def root():
-    html_path = base_path / "index.html"
+    html_path = base_path / "login.html"
     if html_path.exists():
         return FileResponse(html_path)
     return {"message": "Tel-POS çalışıyor"}
+
+
+@app.get("/pos")
+async def pos():
+    html_path = base_path / "index.html"
+    if html_path.exists():
+        return FileResponse(html_path)
+    return {"message": "POS paneli"}
 
 
 @app.get("/admin")
@@ -74,51 +76,17 @@ async def management():
 
 @app.get("/api/printer/status")
 async def printer_status():
-    return printer.check_printer()
-
-
-@app.post("/api/orders/{order_id}/print")
-async def print_order(order_id: int):
-    from .database import SessionLocal
-
-    db = SessionLocal()
-    try:
-        order = db.query(Order).filter(Order.id == order_id).first()
-        if not order:
-            return {"ok": False, "error": "Sipariş bulunamadı"}
-
-        order_data = {
-            "id": order.id,
-            "customer": (
-                {
-                    "id": order.customer.id,
-                    "name": order.customer.name,
-                }
-                if order.customer
-                else None
-            ),
-            "items": [
-                {
-                    "product_name": item.product.name,
-                    "quantity": item.quantity,
-                    "unit_price": item.unit_price,
-                }
-                for item in order.items
-            ],
-        }
-
-        return printer.print_receipt(order_data)
-    finally:
-        db.close()
+    return {"connected": False, "message": "Browser print aktif"}
 
 
 @app.on_event("startup")
 async def startup_event():
-    # Seed data - only if empty
     from .database import SessionLocal
+    from .security import hash_password
 
     db = SessionLocal()
     try:
+        # Seed categories
         if db.query(Category).count() == 0:
             categories = [
                 Category(name="İçecekler", sort_order=1),
@@ -128,37 +96,33 @@ async def startup_event():
             db.add_all(categories)
             db.commit()
 
-            # Add sample products
             cat_icecek = db.query(Category).filter(Category.name == "İçecekler").first()
             cat_yemek = db.query(Category).filter(Category.name == "Yemekler").first()
 
-            products = [
+            sample_products = [
                 Product(category_id=cat_icecek.id, name="Çay", price=10),
                 Product(category_id=cat_icecek.id, name="Kahve", price=15),
                 Product(category_id=cat_yemek.id, name="Döner", price=50),
                 Product(category_id=cat_yemek.id, name="Pide", price=40),
             ]
-            db.add_all(products)
+            db.add_all(sample_products)
+            db.commit()
+
+        # Create default admin user
+        if db.query(User).count() == 0:
+            admin_user = User(
+                username="admin",
+                password_hash=hash_password("admin123"),
+            )
+            db.add(admin_user)
             db.commit()
     finally:
         db.close()
 
-    # Open browser
-    try:
-        webbrowser.open(f"http://localhost:{PORT}")
-    except:
-        pass
-
 
 def run():
     import uvicorn
-
-    uvicorn.run(
-        "app.main:app",
-        host=HOST,
-        port=PORT,
-        reload=False,
-    )
+    uvicorn.run("app.main:app", host=HOST, port=PORT, reload=False)
 
 
 if __name__ == "__main__":

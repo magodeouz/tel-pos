@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>EFE POS — Giriş</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-logo img {
+            height: 60px;
+            margin-bottom: 0.5rem;
+        }
+        .login-logo h4 {
+            margin: 0;
+            color: #333;
+            font-weight: 700;
+        }
+        .error-msg {
+            display: none;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-logo">
+            <img src="/static/logo.svg" alt="EFE POS" onerror="this.style.display='none'">
+            <h4>EFE POS</h4>
+            <small class="text-muted">Restoran Yönetim Sistemi</small>
+        </div>
+
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="username" class="form-label fw-semibold">Kullanıcı Adı</label>
+                <input type="text" class="form-control form-control-lg" id="username"
+                       placeholder="admin" autocomplete="username" required>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label fw-semibold">Şifre</label>
+                <input type="password" class="form-control form-control-lg" id="password"
+                       placeholder="••••••••" autocomplete="current-password" required>
+            </div>
+            <div id="errorMsg" class="error-msg">Kullanıcı adı veya şifre yanlış</div>
+            <button type="submit" class="btn btn-dark btn-lg w-100 mt-2" id="loginBtn">
+                Giriş Yap
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // If already logged in, go to pos
+        if (localStorage.getItem('access_token')) {
+            window.location.href = '/pos';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Giriş yapılıyor...';
+            errorMsg.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('username', username);
+                    window.location.href = '/pos';
+                } else {
+                    errorMsg.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Giriş Yap';
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Bağlantı hatası. Sunucu çalışıyor mu?';
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Giriş Yap';
+            }
+        });
+    </script>
+</body>
+</html>
