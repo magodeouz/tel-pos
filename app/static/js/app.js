@@ -192,11 +192,12 @@ function renderCategories() {
 }
 
 async function loadOrders() {
-    const allCustomers = await API.get("/api/customers/");
+    const [allCustomers, orders] = await Promise.all([
+        API.get("/api/customers/"),
+        API.get("/api/orders?status=open"),
+    ]);
     customers = {};
     allCustomers.forEach(c => customers[c.id] = c);
-
-    const orders = await API.get("/api/orders?status=open");
     renderOrders(orders);
 }
 
@@ -384,7 +385,6 @@ async function selectOrder(orderId) {
     currentOrderId = orderId;
     const order = await API.get(`/api/orders/${orderId}`);
     renderOrderDetails(order);
-    loadOrders();
 }
 
 function renderOrderDetails(order) {
@@ -467,14 +467,14 @@ async function addProductToOrder(productId, productName, price) {
 
     const order = await API.get(`/api/orders/${currentOrderId}`);
     renderOrderDetails(order);
-    loadOrders();
+    loadOrders(); // fire-and-forget, UI already updated
 }
 
 async function removeItem(orderId, itemId) {
     await API.delete(`/api/orders/${orderId}/items/${itemId}`);
     const order = await API.get(`/api/orders/${orderId}`);
     renderOrderDetails(order);
-    loadOrders();
+    loadOrders(); // fire-and-forget
 }
 
 function printOrder(orderId) {
@@ -722,36 +722,28 @@ function startApp() {
     // Payment method buttons - auto-pay and print
     document.querySelectorAll(".payment-btn").forEach(btn => {
         btn.addEventListener("click", async () => {
-            if (currentOrderId) {
-                const paymentMethod = btn.dataset.method;
+            if (!currentOrderId) return;
+            const paymentMethod = btn.dataset.method;
+            const orderId = currentOrderId;
 
-                // Update payment method
-                await API.patch(`/api/orders/${currentOrderId}/payment`, {
-                    payment_method: paymentMethod,
-                });
+            // Clear UI immediately — don't wait for server
+            currentOrderId = null;
+            document.getElementById("orderItems").innerHTML = '<p class="text-muted">Tamamlandı!</p>';
+            document.getElementById("orderTitle").textContent = "Sipariş Seçin";
+            document.getElementById("orderTotal").textContent = "0.00 TL";
+            document.getElementById("orders-tab").click();
 
-                // Mark order as paid
-                await API.patch(`/api/orders/${currentOrderId}/status`, {
-                    status: "paid",
-                });
+            // Print immediately
+            printOrder(orderId);
 
-                // Auto print
-                const order = await API.get(`/api/orders/${currentOrderId}`);
-                await printOrder(currentOrderId);
+            // Send payment + status in parallel, refresh lists in background
+            await Promise.all([
+                API.patch(`/api/orders/${orderId}/payment`, { payment_method: paymentMethod }),
+                API.patch(`/api/orders/${orderId}/status`, { status: "paid" }),
+            ]);
 
-                // Refresh orders list and reset
-                loadOrders();
-                loadAllOrders(1);
-                currentOrderId = null;
-
-                // Show success and return to orders tab
-                document.getElementById("orders-tab").click();
-
-                // Clear order details
-                document.getElementById("orderItems").innerHTML = '<p class="text-muted">Siparişi tamamlandı!</p>';
-                document.getElementById("orderTitle").textContent = "Sipariş Seçin";
-                document.getElementById("orderTotal").textContent = "0.00 TL";
-            }
+            loadOrders();
+            loadAllOrders(1);
         });
     });
 }
