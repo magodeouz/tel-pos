@@ -196,25 +196,66 @@
   </div>
 
   <!-- Order Detail Modal -->
+  <!-- Order Detail Modal -->
   <div class="modal fade" id="orderDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="detailOrderTitle">Sipariş Detayı</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div>
+        <div class="modal-body" style="padding:16px;">
+
+          <!-- Status + Total row -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
               <span id="detailStatus" class="status-badge"></span>
-              <div style="font-size:.78rem;color:#64748b;margin-top:4px;" id="detailDate"></div>
+              <div style="font-size:.78rem;color:#64748b;">🕐 <span id="detailDate"></span></div>
+              <div id="detailCustomer" style="font-size:.82rem;color:#1e293b;display:none;">👤 <span id="detailCustomerName"></span></div>
             </div>
-            <div style="font-size:1.3rem;font-weight:800;" id="detailTotal"></div>
+            <div style="text-align:right;">
+              <div style="font-size:1.4rem;font-weight:800;color:#0f172a;" id="detailTotal"></div>
+              <div id="detailDiscount" style="font-size:.75rem;color:#ef4444;display:none;">İndirim: <span id="detailDiscountVal"></span></div>
+            </div>
           </div>
-          <hr style="margin:8px 0;">
-          <div id="detailItems" class="mb-2"></div>
-          <hr style="margin:8px 0;">
-          <div style="font-size:.8rem;color:#64748b;">Not: <span id="detailNote"></span></div>
+
+          <!-- Payment method -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+            <span style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;">Ödeme:</span>
+            <span id="detailPayment" style="font-size:.85rem;font-weight:700;flex:1;"></span>
+            <button id="detailChangePaymentBtn" onclick="openDetailPaymentChange()"
+              style="background:none;border:1px solid #e2e8f0;border-radius:5px;padding:3px 8px;font-size:.72rem;cursor:pointer;color:#64748b;">
+              Güncelle
+            </button>
+          </div>
+
+          <!-- Items -->
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;">Ürünler</div>
+          <div id="detailItems" style="margin-bottom:10px;max-height:220px;overflow-y:auto;"></div>
+
+          <!-- Note -->
+          <div id="detailNoteWrap" style="font-size:.82rem;color:#64748b;padding:6px 10px;background:#fafafa;border-radius:6px;border:1px solid #f1f5f9;">
+            📝 <span id="detailNote"></span>
+          </div>
+
+          <!-- Payment change section (hidden by default) -->
+          <div id="detailPaymentChangeWrap" style="display:none;margin-top:12px;padding:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+            <div style="font-size:.78rem;font-weight:700;color:#15803d;margin-bottom:8px;">Ödeme Yöntemini Güncelle</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <button onclick="updateDetailPayment('nakit')"    class="detail-pay-btn" style="background:#16a34a;">💵 Nakit</button>
+              <button onclick="updateDetailPayment('kredi_karti')" class="detail-pay-btn" style="background:#2563eb;">💳 Kredi Kartı</button>
+              <button onclick="updateDetailPayment('cari')"     class="detail-pay-btn" style="background:#d97706;">📋 Cari</button>
+              <button onclick="updateDetailPayment('odenmes')"  class="detail-pay-btn" style="background:#dc2626;">🚫 Ödenmez</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer" style="padding:10px 16px;gap:6px;">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
+          <button type="button" class="btn btn-sm" id="detailReprintBtn"
+            style="background:#0ea5e9;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-weight:600;">
+            🖨️ Tekrar Yazdır
+          </button>
         </div>
       </div>
     </div>

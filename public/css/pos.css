@@ -572,6 +572,19 @@ body {
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
+/* ── Order detail modal ──────────────────────────────────── */
+.detail-pay-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 7px 6px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: filter .15s;
+}
+.detail-pay-btn:hover { filter: brightness(1.1); }
+
 /* ── Animations ─────────────────────────────────────────── */
 @keyframes pulse-ring {
   0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }

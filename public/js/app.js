@@ -706,27 +706,85 @@ function getStatusBadgeColor(status) {
     return colors[status] || "status-open";
 }
 
+let _detailOrderId = null;
+
 async function showOrderDetail(orderId) {
     const order = await API.get(`/api/orders/${orderId}`);
     if (!order || !order.id) return;
+    _detailOrderId = orderId;
 
     document.getElementById("detailOrderTitle").textContent = `Sipariş #${order.id}`;
-    document.getElementById("detailStatus").textContent = getStatusText(order.status);
-    document.getElementById("detailStatus").className = `status-badge ${getStatusBadgeColor(order.status)}`;
-    document.getElementById("detailDate").textContent = new Date(order.created_at).toLocaleString("tr-TR");
-    document.getElementById("detailTotal").textContent = `${fmt(order.total)} TL`;
-    document.getElementById("detailNote").textContent = order.note || "—";
 
-    document.getElementById("detailItems").innerHTML = order.items.map(item => `
-        <div class="row mb-2 pb-2 border-bottom">
-            <div class="col-8">${item.product_name}</div>
-            <div class="col-2 text-center">${item.quantity}x</div>
-            <div class="col-2 text-end">${fmt(item.quantity * item.unit_price)} TL</div>
+    // Status
+    const isCari = order.payment_method === 'cari';
+    const statusLabel = isCari ? '📋 Cari' : getStatusText(order.status);
+    const statusClass = isCari ? 'status-open' : getStatusBadgeColor(order.status);
+    document.getElementById("detailStatus").textContent = statusLabel;
+    document.getElementById("detailStatus").className = `status-badge ${statusClass}`;
+
+    document.getElementById("detailDate").textContent = new Date(order.created_at).toLocaleString("tr-TR");
+
+    // Customer
+    const custEl = document.getElementById("detailCustomer");
+    if (order.customer_id && customers[order.customer_id]) {
+        document.getElementById("detailCustomerName").textContent = customers[order.customer_id].name;
+        custEl.style.display = '';
+    } else {
+        custEl.style.display = 'none';
+    }
+
+    // Total + discount
+    const subtotal = order.items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+    const discount = order.discount_amount || 0;
+    document.getElementById("detailTotal").textContent = `${fmt(order.total)} ₺`;
+    const discEl = document.getElementById("detailDiscount");
+    if (discount > 0) {
+        document.getElementById("detailDiscountVal").textContent = `-${fmt(discount)} ₺`;
+        discEl.style.display = '';
+    } else { discEl.style.display = 'none'; }
+
+    // Payment
+    const payMap = { nakit: '💵 Nakit', kredi_karti: '💳 Kredi Kartı', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: '—' };
+    document.getElementById("detailPayment").textContent = payMap[order.payment_method] || '—';
+
+    // Note
+    const noteWrap = document.getElementById("detailNoteWrap");
+    noteWrap.style.display = order.note ? '' : 'none';
+    document.getElementById("detailNote").textContent = order.note || '';
+
+    // Items
+    document.getElementById("detailItems").innerHTML = order.items.length === 0
+        ? '<p class="text-muted" style="font-size:.8rem;">Ürün yok</p>'
+        : order.items.map(item => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:.82rem;">
+            <div style="flex:1;font-weight:500;">${item.product_name}</div>
+            <div style="color:#64748b;margin:0 10px;">${item.quantity}×</div>
+            <div style="font-weight:700;">${fmt(item.quantity * item.unit_price)} ₺</div>
         </div>
     `).join("");
 
-    const modal = new bootstrap.Modal(document.getElementById("orderDetailModal"));
-    modal.show();
+    // Hide payment change panel
+    document.getElementById("detailPaymentChangeWrap").style.display = 'none';
+
+    // Reprint
+    document.getElementById("detailReprintBtn").onclick = () => printOrder(orderId);
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("orderDetailModal")).show();
+}
+
+function openDetailPaymentChange() {
+    const wrap = document.getElementById("detailPaymentChangeWrap");
+    wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
+}
+
+async function updateDetailPayment(method) {
+    if (!_detailOrderId) return;
+    await API.patch(`/api/orders/${_detailOrderId}/payment`, { payment_method: method });
+    document.getElementById("detailPaymentChangeWrap").style.display = 'none';
+    // Refresh
+    showOrderDetail(_detailOrderId);
+    loadAllOrders(allOrdersPage);
+    loadOrders();
 }
 
 function updateAllOrdersPagination() {
