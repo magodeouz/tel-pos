@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { eq, desc, and, sql } from 'drizzle-orm'
 import { getDb } from '../db'
-import { orders, orderItems, products } from '../schema'
+import { orders, orderItems, products, customers } from '../schema'
 import type { Env } from '../worker'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -68,6 +68,20 @@ app.get('/:id/receipt', async (c) => {
   if (built.discount_percent) discountVal += subtotal * (built.discount_percent / 100)
   const total = Math.max(0, subtotal - discountVal)
 
+  // Customer info if linked
+  let customerHtml = ''
+  if (order.customerId) {
+    const [cust] = await db.select().from(customers).where(eq(customers.id, order.customerId)).limit(1)
+    if (cust) {
+      customerHtml = `<hr>
+<div style="font-size:11px;">
+  <div><strong>${cust.name}</strong></div>
+  ${cust.phone ? `<div>Tel: ${cust.phone}</div>` : ''}
+  ${cust.address ? `<div>${cust.address}</div>` : ''}
+</div>`
+    }
+  }
+
   const fmtTR = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const paymentMap: Record<string, string> = { nakit: '💵 Nakit', kredi_karti: '💳 Kredi Kartı', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: '-' }
   const paymentLabel = paymentMap[built.payment_method ?? 'pending'] ?? built.payment_method ?? '-'
@@ -97,6 +111,7 @@ ${restAddr ? `<p class="center" style="margin:1px 0;font-size:10px">${restAddr}<
 ${restPhone ? `<p class="center" style="margin:1px 0;font-size:10px">Tel: ${restPhone}</p>` : ''}
 <p class="center" style="margin:2px 0;font-size:10px">Sipariş #${order.id}</p>
 <p class="center" style="margin:2px 0;font-size:10px">${dateStr}</p>
+${customerHtml}
 <hr>
 ${itemsHtml}
 <hr>
