@@ -206,8 +206,8 @@ function renderCategories() {
                 .map(
                     (prod) => `
                 <button class="btn btn-outline-primary btn-sm text-start"
-                    onclick="addProductToOrder(${prod.id}, '${prod.name}', ${prod.price})"
-                    title="${prod.note ? prod.note : ''}">
+                    data-product-id="${prod.id}"
+                    title="${(prod.note || '').replace(/"/g, '&quot;')}">
                     ${prod.name} - ${prod.price.toFixed(2)} TL
                     ${prod.note ? `<br><small class="text-secondary">${prod.note}</small>` : ""}
                 </button>
@@ -339,7 +339,7 @@ function renderAllOrders(orders) {
                         ? customers[order.customer_id].name
                         : "—";
                     return `
-                    <tr style="cursor: pointer;" onclick="showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">
+                    <tr style="cursor: pointer;" data-order-detail-id="${order.id}">
                         <td><strong>#${order.id}</strong></td>
                         <td>${customerName}</td>
                         <td><small>${new Date(order.created_at).toLocaleString("tr-TR")}</small></td>
@@ -347,10 +347,10 @@ function renderAllOrders(orders) {
                         <td><strong>${order.total.toFixed(2)} TL</strong></td>
                         <td>
                             <span class="badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
-                            ${order.status !== 'paid' ? `<br><button class="btn btn-sm btn-success mt-1" onclick="event.stopPropagation(); markOrderAsPaid(${order.id})">Ödendi Yap</button>` : ''}
+                            ${order.status !== 'paid' ? `<br><button class="btn btn-sm btn-success mt-1" data-mark-paid="${order.id}">Ödendi Yap</button>` : ''}
                         </td>
                         <td style="text-align: center;">
-                            <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); showOrderDetail(${order.id}, '${order.status}', '${order.created_at}', ${order.total}, \`${(order.note || '').replace(/`/g, '\\`')}\`, ${JSON.stringify(order.items).replace(/`/g, '\\`')})">Aç</button>
+                            <button class="btn btn-sm btn-primary" data-open-detail="${order.id}">Aç</button>
                         </td>
                     </tr>
                     `;
@@ -372,27 +372,24 @@ function getStatusBadgeColor(status) {
     return colors[status] || "bg-secondary";
 }
 
-function showOrderDetail(orderId, status, createdAt, total, note, items) {
-    document.getElementById("detailOrderTitle").textContent = `Sipariş #${orderId}`;
-    document.getElementById("detailStatus").textContent = getStatusText(status);
-    document.getElementById("detailStatus").className = `badge ${getStatusBadgeColor(status)}`;
-    document.getElementById("detailDate").textContent = new Date(createdAt).toLocaleString("tr-TR");
-    document.getElementById("detailTotal").textContent = `${total.toFixed(2)} TL`;
-    document.getElementById("detailNote").textContent = note || "—";
+async function showOrderDetail(orderId) {
+    const order = await API.get(`/api/orders/${orderId}`);
+    if (!order || !order.id) return;
 
-    const itemsHtml = items
-        .map(
-            (item) => `
+    document.getElementById("detailOrderTitle").textContent = `Sipariş #${order.id}`;
+    document.getElementById("detailStatus").textContent = getStatusText(order.status);
+    document.getElementById("detailStatus").className = `badge ${getStatusBadgeColor(order.status)}`;
+    document.getElementById("detailDate").textContent = new Date(order.created_at).toLocaleString("tr-TR");
+    document.getElementById("detailTotal").textContent = `${order.total.toFixed(2)} TL`;
+    document.getElementById("detailNote").textContent = order.note || "—";
+
+    document.getElementById("detailItems").innerHTML = order.items.map(item => `
         <div class="row mb-2 pb-2 border-bottom">
             <div class="col-8">${item.product_name}</div>
             <div class="col-2 text-center">${item.quantity}x</div>
             <div class="col-2 text-end">${(item.quantity * item.unit_price).toFixed(2)} TL</div>
         </div>
-    `
-        )
-        .join("");
-
-    document.getElementById("detailItems").innerHTML = itemsHtml;
+    `).join("");
 
     const modal = new bootstrap.Modal(document.getElementById("orderDetailModal"));
     modal.show();
@@ -483,7 +480,7 @@ function renderOrderDetails(order) {
     document.getElementById("cancelBtn").disabled = false;
 }
 
-async function addProductToOrder(productId, productName, price) {
+async function addProductToOrder(productId) {
     if (!currentOrderId) {
         alert("Lütfen önce sipariş seçin");
         return;
@@ -712,6 +709,24 @@ function startApp() {
     loadCustomers();
     loadAllOrders(1);
     checkPrinterStatus();
+
+    // Product button clicks via event delegation (handles special chars in names)
+    document.getElementById("categoriesContainer").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-product-id]");
+        if (btn) addProductToOrder(Number(btn.dataset.productId));
+    });
+
+    // All-orders table: detail open + mark paid via event delegation
+    document.getElementById("allOrdersList").addEventListener("click", (e) => {
+        const openBtn = e.target.closest("[data-open-detail]");
+        if (openBtn) { e.stopPropagation(); showOrderDetail(Number(openBtn.dataset.openDetail)); return; }
+
+        const paidBtn = e.target.closest("[data-mark-paid]");
+        if (paidBtn) { e.stopPropagation(); markOrderAsPaid(Number(paidBtn.dataset.markPaid)); return; }
+
+        const row = e.target.closest("[data-order-detail-id]");
+        if (row) showOrderDetail(Number(row.dataset.orderDetailId));
+    });
 
     // Event listener for order note updates
     document.getElementById("orderNote").addEventListener("input", () => {
