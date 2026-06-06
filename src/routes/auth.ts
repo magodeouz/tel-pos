@@ -8,42 +8,46 @@ import type { Env } from '../worker'
 const MAX_ATTEMPTS = 5
 const WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 
-async function checkRateLimit(db: ReturnType<typeof getDb>, ip: string): Promise<boolean> {
+async function checkRateLimit(d1: D1Database, ip: string): Promise<boolean> {
   const now = Date.now()
-  const result = await db.run(
-    `INSERT INTO login_attempts (ip, count, reset_at) VALUES (?, 1, ?)
-     ON CONFLICT(ip) DO UPDATE SET
-       count = CASE WHEN reset_at < ? THEN 1 ELSE count + 1 END,
-       reset_at = CASE WHEN reset_at < ? THEN ? ELSE reset_at END
-     RETURNING count, reset_at`,
-    [ip, now + WINDOW_MS, now, now, now + WINDOW_MS]
-  ) as any
-  const row = result?.results?.[0]
-  return !row || row.count <= MAX_ATTEMPTS
+  const resetAt = now + WINDOW_MS
+  // Read current state
+  const row = await d1.prepare('SELECT count, reset_at FROM login_attempts WHERE ip = ?').bind(ip).first<{count: number; reset_at: number}>()
+
+  if (!row || row.reset_at < now) {
+    // First attempt or window expired — upsert fresh
+    await d1.prepare('INSERT INTO login_attempts (ip, count, reset_at) VALUES (?, 1, ?) ON CONFLICT(ip) DO UPDATE SET count=1, reset_at=?')
+      .bind(ip, resetAt, resetAt).run()
+    return true
+  }
+
+  if (row.count >= MAX_ATTEMPTS) return false
+
+  await d1.prepare('UPDATE login_attempts SET count = count + 1 WHERE ip = ?').bind(ip).run()
+  return true
 }
 
-async function resetRateLimit(db: ReturnType<typeof getDb>, ip: string): Promise<void> {
-  await db.run('DELETE FROM login_attempts WHERE ip = ?', [ip])
+async function resetRateLimit(d1: D1Database, ip: string): Promise<void> {
+  await d1.prepare('DELETE FROM login_attempts WHERE ip = ?').bind(ip).run()
 }
 
 const auth = new Hono<{ Bindings: Env }>()
 
 auth.post('/login', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? 'unknown'
-  const db = getDb(c.env.DB)
-
-  if (!await checkRateLimit(db, ip)) {
+  if (!await checkRateLimit(c.env.DB, ip)) {
     return c.json({ detail: '15 dakika içinde çok fazla hatalı giriş. Lütfen bekleyin.' }, 429)
   }
 
   const { username, password } = await c.req.json()
+  const db = getDb(c.env.DB)
   const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return c.json({ detail: 'Kullanıcı adı veya şifre yanlış' }, 401)
   }
 
-  await resetRateLimit(db, ip)
+  await resetRateLimit(c.env.DB, ip)
   const token = await createToken(username, c.env)
   return c.json({ access_token: token, token_type: 'bearer', username })
 })
