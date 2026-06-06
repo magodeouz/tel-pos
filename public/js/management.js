@@ -55,6 +55,48 @@ let categories = [];
 let products = [];
 let filteredProducts = [];
 let editingProduct = null;
+let selectedCategoryId = null; // null = "Tümü" (all categories)
+
+// ============= CATALOG: CATEGORY MASTER LIST =============
+
+function renderCategoryList() {
+    const el = document.getElementById("categoryList");
+    if (!el) return;
+
+    const sorted = [...categories].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const row = (id, name, count, actions) => `
+        <div class="cat-item ${selectedCategoryId === id ? 'active' : ''}" onclick="selectCategory(${id === null ? 'null' : id})">
+            <span class="cat-name">${name}</span>
+            <span class="cat-count">${count}</span>
+            ${actions || ''}
+        </div>`;
+
+    let html = row(null, "Tümü", products.length, '');
+    html += sorted.map(c => {
+        const count = products.filter(p => p.category_id === c.id).length;
+        const actions = `<span class="cat-actions">
+            <button class="icon-btn" title="Düzenle"
+                onclick="event.stopPropagation(); editCategory(${c.id}, '${c.name.replace(/'/g, "\\'")}', ${c.sort_order || 1})">✏️</button>
+            <button class="icon-btn" title="Sil"
+                onclick="event.stopPropagation(); deleteCategory(${c.id})">🗑</button>
+        </span>`;
+        return row(c.id, c.name, count, actions);
+    }).join("");
+
+    el.innerHTML = html;
+}
+
+function selectCategory(id) {
+    selectedCategoryId = id;
+    renderCategoryList();
+    filterProducts();
+    renderProductsTable();
+
+    const cat = categories.find(c => c.id === id);
+    document.getElementById("productsTitle").textContent = "Ürünler: " + (cat ? cat.name : "Tümü");
+    // Pre-fill the add-product category with the selected one for convenience.
+    if (id) document.getElementById("newProductCategory").value = String(id);
+}
 
 // ============= PRODUCT MANAGEMENT =============
 
@@ -62,6 +104,7 @@ async function loadCategories() {
     try {
         categories = await API.get("/api/categories");
         updateCategorySelects();
+        renderCategoryList();
     } catch (e) {
         console.error("Error loading categories:", e);
     }
@@ -76,6 +119,7 @@ async function loadProducts() {
         }
         filterProducts();
         renderProductsTable();
+        renderCategoryList(); // refresh per-category counts
     } catch (e) {
         console.error("Error loading products:", e);
     }
@@ -84,8 +128,10 @@ async function loadProducts() {
 function filterProducts() {
     const searchTerm = document.getElementById("productSearch").value.toLowerCase();
     filteredProducts = products.filter(p => {
-        return p.name.toLowerCase().includes(searchTerm) ||
-               (p.category_name && p.category_name.toLowerCase().includes(searchTerm));
+        const matchCat = selectedCategoryId == null || p.category_id === selectedCategoryId;
+        const matchSearch = p.name.toLowerCase().includes(searchTerm) ||
+            (p.category_name && p.category_name.toLowerCase().includes(searchTerm));
+        return matchCat && matchSearch;
     });
 }
 
@@ -370,37 +416,9 @@ document.getElementById("resetSalesFilter").addEventListener("click", () => {
 
 // ============= CATEGORY MANAGEMENT =============
 
+// Kept as a thin alias: refreshing categories also re-renders the master list.
 async function loadCategoriesList() {
-    try {
-        const data = await API.get("/api/categories");
-        renderCategoriesTable(data);
-    } catch (e) {
-        console.error("Error loading categories:", e);
-        alert("Kategoriler yüklenemedi");
-    }
-}
-
-function renderCategoriesTable(categories) {
-    const tbody = document.getElementById("categoriesTableBody");
-    if (categories.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Kategori yok</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = categories
-        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-        .map(cat => `
-            <tr>
-                <td style="color:#64748b">${cat.id}</td>
-                <td><strong>${cat.name}</strong></td>
-                <td><span class="badge badge-blue">${cat.sort_order || 1}</span></td>
-                <td style="text-align:center">
-                    <button class="btn btn-ghost btn-sm" onclick="editCategory(${cat.id}, '${cat.name.replace(/'/g,"\\'")}', ${cat.sort_order || 1})" title="Düzenle">✏️</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteCategory(${cat.id})" title="Sil">🗑</button>
-                </td>
-            </tr>
-        `)
-        .join("");
+    await loadCategories();
 }
 
 async function editCategory(id, name, sortOrder) {
@@ -415,9 +433,9 @@ async function editCategory(id, name, sortOrder) {
             name: newName,
             sort_order: parseInt(newSortOrder) || 1
         });
-        await loadCategoriesList();
         await loadCategories();
         await loadProducts();
+        selectCategory(selectedCategoryId); // refresh title/highlight
     } catch (e) {
         alert("Kategori düzenlenemedi: " + e.message);
     }
@@ -428,9 +446,10 @@ async function deleteCategory(id) {
 
     try {
         await API.delete(`/api/categories/${id}`);
-        await loadCategoriesList();
         await loadCategories();
         await loadProducts();
+        // If the deleted category was selected, fall back to "Tümü".
+        selectCategory(categories.some(c => c.id === selectedCategoryId) ? selectedCategoryId : null);
     } catch (e) {
         alert("Kategori silinemedi: " + e.message);
     }
@@ -450,10 +469,9 @@ document.getElementById("categoryForm")?.addEventListener("submit", async (e) =>
         await API.post("/api/categories", { name, sort_order: sortOrder });
         document.getElementById("categoryForm").reset();
         document.getElementById("newCategorySortOrder").value = "1";
-        await loadCategoriesList();
         await loadCategories();
         await loadProducts();
-        alert("Kategori eklendi");
+        selectCategory(selectedCategoryId);
     } catch (e) {
         alert("Kategori eklenemedi: " + e.message);
     }
@@ -462,12 +480,10 @@ document.getElementById("categoryForm")?.addEventListener("submit", async (e) =>
 // ============= INITIALIZATION =============
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Load product management
+    // Catalog: categories + products
     await loadCategories();
     await loadProducts();
-
-    // Load category management
-    await loadCategoriesList();
+    selectCategory(null); // default to "Tümü"
 
     // Load reports with default dates
     setDateDefaults();
@@ -479,7 +495,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("sales-report-tab")?.addEventListener("click", loadSalesReport);
     document.getElementById("product-analysis-tab")?.addEventListener("click", loadProductSalesAnalysis);
     document.getElementById("customer-analysis-tab")?.addEventListener("click", loadCustomerSpendingAnalysis);
-
-    // Main tab: categories
-    document.querySelector('.mgmt-tab[data-tab="categories"]')?.addEventListener("click", loadCategoriesList);
 });

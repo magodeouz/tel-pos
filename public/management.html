@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>EFE POS — Yönetim</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/mgmt.css?v=202606062247">
+  <link rel="stylesheet" href="/css/mgmt.css?v=202606070500">
 </head>
 <body>
 
@@ -23,123 +23,97 @@
 
     <!-- Tabs -->
     <div class="mgmt-tabs">
-      <button class="mgmt-tab active" data-tab="products"><span class="tab-icon">📦</span>Ürün Yönetimi</button>
-      <button class="mgmt-tab" data-tab="categories"><span class="tab-icon">🏷️</span>Kategori Yönetimi</button>
+      <button class="mgmt-tab active" data-tab="catalog"><span class="tab-icon">📦</span>Ürün &amp; Kategori</button>
       <button class="mgmt-tab" data-tab="reports"><span class="tab-icon">📊</span>Raporlama</button>
     </div>
 
-    <!-- ── TAB: Ürünler ──────────────────────────────────── -->
-    <div class="tab-content active" id="tab-products">
-      <div class="two-col">
-        <!-- Table -->
-        <div class="mgmt-card">
-          <div class="mgmt-card-header">
-            <span class="mgmt-card-title">Ürün Listesi</span>
-          </div>
-          <div class="mgmt-card-body">
-            <div class="search-wrap">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="productSearch" placeholder="Ürün adı veya kategoriye göre ara...">
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="mgmt-table">
-                <thead>
-                  <tr>
-                    <th style="width:5%">#</th>
-                    <th style="width:30%">Ürün Adı</th>
-                    <th style="width:18%">Kategori</th>
-                    <th style="width:12%">Fiyat</th>
-                    <th style="width:20%">Not</th>
-                    <th style="width:8%">Durum</th>
-                    <th style="width:7%;text-align:center">İşlem</th>
-                  </tr>
-                </thead>
-                <tbody id="productsTableBody">
-                  <tr><td colspan="7" class="mgmt-empty">Yükleniyor...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+    <!-- ── TAB: Ürün & Kategori (master-detail) ──────────── -->
+    <div class="tab-content active" id="tab-catalog">
+      <div class="master-detail">
 
-        <!-- Add form -->
+        <!-- Master: categories -->
         <div class="mgmt-card">
           <div class="mgmt-card-header">
-            <span class="mgmt-card-title">➕ Yeni Ürün</span>
+            <span class="mgmt-card-title">🏷️ Kategoriler</span>
           </div>
           <div class="mgmt-card-body">
-            <form id="productForm" class="mgmt-form">
-              <div class="form-group">
-                <label class="form-label">Ürün Adı *</label>
-                <input type="text" class="form-input" id="newProductName" required placeholder="Örn: Çay">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Fiyat (₺) *</label>
-                <input type="number" class="form-input" id="newProductPrice" step="0.01" min="0" required placeholder="0.00">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Kategori *</label>
-                <select class="form-select" id="newProductCategory" required>
-                  <option value="">Kategori seçin</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Not</label>
-                <textarea class="form-textarea" id="newProductNote" placeholder="İsteğe bağlı"></textarea>
-              </div>
-              <label class="form-check-row">
-                <input type="checkbox" id="newProductActive" checked>
-                Aktif
-              </label>
-              <button type="submit" class="btn btn-primary btn-full">Ürün Ekle</button>
+            <div id="categoryList" class="cat-list">
+              <p class="mgmt-empty">Yükleniyor...</p>
+            </div>
+            <form id="categoryForm" class="cat-add-form">
+              <input type="text" class="form-input" id="newCategoryName" required placeholder="Yeni kategori">
+              <input type="number" class="form-input" id="newCategorySortOrder" value="1" min="1" title="Sıra" style="width:60px;flex:none;">
+              <button type="submit" class="btn btn-primary btn-sm">+ Ekle</button>
             </form>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- ── TAB: Kategoriler ──────────────────────────────── -->
-    <div class="tab-content" id="tab-categories" style="display:none">
-      <div class="two-col">
-        <div class="mgmt-card">
-          <div class="mgmt-card-header">
-            <span class="mgmt-card-title">Kategori Listesi</span>
+        <!-- Detail: products of the selected category -->
+        <div class="detail-col">
+          <div class="mgmt-card">
+            <div class="mgmt-card-header" style="gap:12px;">
+              <span class="mgmt-card-title" id="productsTitle">Ürünler</span>
+              <div class="search-wrap" style="margin:0;flex:1;max-width:280px;">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="productSearch" placeholder="Ürün ara...">
+              </div>
+            </div>
+            <div class="mgmt-card-body">
+              <div style="overflow-x:auto;">
+                <table class="mgmt-table">
+                  <thead>
+                    <tr>
+                      <th style="width:5%">#</th>
+                      <th style="width:30%">Ürün Adı</th>
+                      <th style="width:18%">Kategori</th>
+                      <th style="width:12%">Fiyat</th>
+                      <th style="width:20%">Not</th>
+                      <th style="width:8%">Durum</th>
+                      <th style="width:7%;text-align:center">İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody id="productsTableBody">
+                    <tr><td colspan="7" class="mgmt-empty">Yükleniyor...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-          <div class="mgmt-card-body">
-            <table class="mgmt-table">
-              <thead>
-                <tr>
-                  <th style="width:8%">#</th>
-                  <th style="width:55%">Kategori Adı</th>
-                  <th style="width:15%">Sıra</th>
-                  <th style="width:22%;text-align:center">İşlem</th>
-                </tr>
-              </thead>
-              <tbody id="categoriesTableBody">
-                <tr><td colspan="4" class="mgmt-empty">Yükleniyor...</td></tr>
-              </tbody>
-            </table>
+
+          <div class="mgmt-card">
+            <div class="mgmt-card-header">
+              <span class="mgmt-card-title">➕ Yeni Ürün</span>
+            </div>
+            <div class="mgmt-card-body">
+              <form id="productForm" class="mgmt-form mgmt-form-row">
+                <div class="form-group">
+                  <label class="form-label">Ürün Adı *</label>
+                  <input type="text" class="form-input" id="newProductName" required placeholder="Örn: Çay">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Fiyat (₺) *</label>
+                  <input type="number" class="form-input" id="newProductPrice" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Kategori *</label>
+                  <select class="form-select" id="newProductCategory" required>
+                    <option value="">Kategori seçin</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Not</label>
+                  <input type="text" class="form-input" id="newProductNote" placeholder="İsteğe bağlı">
+                </div>
+                <label class="form-check-row">
+                  <input type="checkbox" id="newProductActive" checked>
+                  Aktif
+                </label>
+                <button type="submit" class="btn btn-primary">Ürün Ekle</button>
+              </form>
+            </div>
           </div>
         </div>
 
-        <div class="mgmt-card">
-          <div class="mgmt-card-header">
-            <span class="mgmt-card-title">➕ Yeni Kategori</span>
-          </div>
-          <div class="mgmt-card-body">
-            <form id="categoryForm" class="mgmt-form">
-              <div class="form-group">
-                <label class="form-label">Kategori Adı *</label>
-                <input type="text" class="form-input" id="newCategoryName" required placeholder="Örn: İçecekler">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Sıralama</label>
-                <input type="number" class="form-input" id="newCategorySortOrder" value="1" min="1">
-              </div>
-              <button type="submit" class="btn btn-primary btn-full">Kategori Ekle</button>
-            </form>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -357,6 +331,6 @@
       });
     });
   </script>
-  <script src="/js/management.js?v=202606070330"></script>
+  <script src="/js/management.js?v=202606070500"></script>
 </body>
 </html>
