@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { getDb } from './db'
 import { requireAuth } from './security'
 import authRoute from './routes/auth'
 import customersRoute from './routes/customers'
@@ -15,6 +14,7 @@ export { CallHub } from './ws-hub'
 export interface Env {
   DB: D1Database
   CALL_HUB: DurableObjectNamespace
+  ASSETS: Fetcher
   JWT_SECRET?: string
   RESTAURANT_NAME?: string
 }
@@ -53,8 +53,14 @@ app.route('/api/orders', ordersRoute)
 app.route('/api/incoming-call', incomingCallRoute)
 app.route('/api/reports', reportsRoute)
 
-// ── Static files (served from /public via Cloudflare Pages) ──
-app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /', 200, { 'X-Robots-Tag': 'noindex, nofollow' }))
+// ── HTML pages → serve from ASSETS ───────────────────────────
+const serveAsset = (file: string) => (c: any) =>
+  c.env.ASSETS.fetch(new Request(`${new URL(c.req.url).origin}/${file}`))
 
+app.get('/', serveAsset('login.html'))
+app.get('/pos', serveAsset('index.html'))
+app.get('/admin', serveAsset('admin.html'))
+app.get('/management', serveAsset('management.html'))
+app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /', 200, { 'X-Robots-Tag': 'noindex, nofollow' }))
 
 export default app
