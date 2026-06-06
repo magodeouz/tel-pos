@@ -1,9 +1,10 @@
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { SignJWT, jwtVerify } from 'jose'
 import type { Context } from 'hono'
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production'
-const JWT_EXPIRE = '24h'
+function getSecret(env: { JWT_SECRET?: string }) {
+  return new TextEncoder().encode(env.JWT_SECRET ?? 'dev-secret-change-in-production-min32chars!')
+}
 
 export function hashPassword(password: string): string {
   return bcrypt.hashSync(password, 10)
@@ -13,21 +14,24 @@ export function verifyPassword(plain: string, hashed: string): boolean {
   return bcrypt.compareSync(plain, hashed)
 }
 
-export function createToken(username: string): string {
-  return jwt.sign({ sub: username }, JWT_SECRET, { expiresIn: JWT_EXPIRE })
+export async function createToken(username: string, env: { JWT_SECRET?: string }): Promise<string> {
+  return new SignJWT({ sub: username })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('24h')
+    .sign(getSecret(env))
 }
 
-export function verifyToken(token: string): string {
-  const payload = jwt.verify(token, JWT_SECRET) as { sub: string }
-  return payload.sub
-}
-
-export function requireAuth(c: Context): string | null {
-  const auth = c.req.header('Authorization')
-  if (!auth?.startsWith('Bearer ')) return null
+export async function verifyToken(token: string, env: { JWT_SECRET?: string }): Promise<string | null> {
   try {
-    return verifyToken(auth.slice(7))
+    const { payload } = await jwtVerify(token, getSecret(env))
+    return payload.sub as string
   } catch {
     return null
   }
+}
+
+export async function requireAuth(c: Context): Promise<string | null> {
+  const auth = c.req.header('Authorization')
+  if (!auth?.startsWith('Bearer ')) return null
+  return verifyToken(auth.slice(7), c.env as { JWT_SECRET?: string })
 }

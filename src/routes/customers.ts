@@ -1,51 +1,56 @@
 import { Hono } from 'hono'
-import { prisma } from '../db'
+import { eq } from 'drizzle-orm'
+import { getDb } from '../db'
+import { customers } from '../schema'
+import type { Env } from '../worker'
 
-const customers = new Hono()
+const app = new Hono<{ Bindings: Env }>()
 
-customers.get('/', async (c) => {
-  const list = await prisma.customer.findMany({ orderBy: { name: 'asc' } })
+app.get('/', async (c) => {
+  const db = getDb(c.env.DB)
+  const list = await db.select().from(customers).orderBy(customers.name)
   return c.json(list)
 })
 
-customers.get('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
-  const customer = await prisma.customer.findUnique({ where: { id } })
-  if (!customer) return c.json({ detail: 'Müşteri bulunamadı' }, 404)
-  return c.json(customer)
+app.get('/:id', async (c) => {
+  const db = getDb(c.env.DB)
+  const [row] = await db.select().from(customers).where(eq(customers.id, Number(c.req.param('id')))).limit(1)
+  if (!row) return c.json({ detail: 'Müşteri bulunamadı' }, 404)
+  return c.json(row)
 })
 
-customers.get('/phone/:phone', async (c) => {
-  const phone = c.req.param('phone')
-  const customer = await prisma.customer.findUnique({ where: { phone } })
-  if (!customer) return c.json({ detail: 'Müşteri bulunamadı' }, 404)
-  return c.json(customer)
+app.get('/phone/:phone', async (c) => {
+  const db = getDb(c.env.DB)
+  const [row] = await db.select().from(customers).where(eq(customers.phone, c.req.param('phone'))).limit(1)
+  if (!row) return c.json({ detail: 'Müşteri bulunamadı' }, 404)
+  return c.json(row)
 })
 
-customers.post('/', async (c) => {
+app.post('/', async (c) => {
+  const db = getDb(c.env.DB)
   const body = await c.req.json()
-  const existing = await prisma.customer.findUnique({ where: { phone: body.phone } })
-  if (existing) return c.json({ detail: 'Bu telefon zaten kayıtlı' }, 400)
-  const customer = await prisma.customer.create({
-    data: { phone: body.phone, name: body.name, address: body.address ?? null, note: body.note ?? null }
-  })
-  return c.json(customer, 201)
+  const existing = await db.select().from(customers).where(eq(customers.phone, body.phone)).limit(1)
+  if (existing.length) return c.json({ detail: 'Bu telefon zaten kayıtlı' }, 400)
+  const [row] = await db.insert(customers).values({
+    phone: body.phone, name: body.name, address: body.address ?? null, note: body.note ?? null
+  }).returning()
+  return c.json(row, 201)
 })
 
-customers.put('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
+app.put('/:id', async (c) => {
+  const db = getDb(c.env.DB)
   const body = await c.req.json()
-  const customer = await prisma.customer.update({
-    where: { id },
-    data: { phone: body.phone, name: body.name, address: body.address ?? null, note: body.note ?? null }
-  })
-  return c.json(customer)
+  const [row] = await db.update(customers)
+    .set({ phone: body.phone, name: body.name, address: body.address ?? null, note: body.note ?? null })
+    .where(eq(customers.id, Number(c.req.param('id'))))
+    .returning()
+  return c.json(row)
 })
 
-customers.delete('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
-  await prisma.customer.delete({ where: { id } })
+app.delete('/:id', async (c) => {
+  const db = getDb(c.env.DB)
+  await db.delete(customers).where(eq(customers.id, Number(c.req.param('id'))))
   return c.json({ ok: true })
 })
 
-export default customers
+export default app

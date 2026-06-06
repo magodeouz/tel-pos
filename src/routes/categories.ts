@@ -1,50 +1,46 @@
 import { Hono } from 'hono'
-import { prisma } from '../db'
+import { eq, asc } from 'drizzle-orm'
+import { getDb } from '../db'
+import { categories, products } from '../schema'
+import type { Env } from '../worker'
 
-const categories = new Hono()
+const app = new Hono<{ Bindings: Env }>()
 
-categories.get('/', async (c) => {
-  const list = await prisma.category.findMany({
-    include: { products: { where: { active: true }, orderBy: { name: 'asc' } } },
-    orderBy: { sortOrder: 'asc' }
-  })
-  return c.json(list.map(cat => ({
-    id: cat.id,
-    name: cat.name,
+app.get('/', async (c) => {
+  const db = getDb(c.env.DB)
+  const cats = await db.select().from(categories).orderBy(asc(categories.sortOrder))
+  const prods = await db.select().from(products).where(eq(products.active, true)).orderBy(asc(products.name))
+
+  return c.json(cats.map(cat => ({
+    ...cat,
     sort_order: cat.sortOrder,
-    products: cat.products.map(p => ({
-      id: p.id,
-      category_id: p.categoryId,
-      name: p.name,
-      price: p.price,
-      note: p.note,
-      active: p.active,
+    products: prods.filter(p => p.categoryId === cat.id).map(p => ({
+      id: p.id, category_id: p.categoryId, name: p.name, price: p.price, note: p.note, active: p.active
     }))
   })))
 })
 
-categories.post('/', async (c) => {
+app.post('/', async (c) => {
+  const db = getDb(c.env.DB)
   const body = await c.req.json()
-  const cat = await prisma.category.create({
-    data: { name: body.name, sortOrder: body.sort_order ?? 0 }
-  })
-  return c.json(cat, 201)
+  const [row] = await db.insert(categories).values({ name: body.name, sortOrder: body.sort_order ?? 0 }).returning()
+  return c.json(row, 201)
 })
 
-categories.put('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
+app.put('/:id', async (c) => {
+  const db = getDb(c.env.DB)
   const body = await c.req.json()
-  const cat = await prisma.category.update({
-    where: { id },
-    data: { name: body.name, sortOrder: body.sort_order ?? 0 }
-  })
-  return c.json(cat)
+  const [row] = await db.update(categories)
+    .set({ name: body.name, sortOrder: body.sort_order ?? 0 })
+    .where(eq(categories.id, Number(c.req.param('id'))))
+    .returning()
+  return c.json(row)
 })
 
-categories.delete('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
-  await prisma.category.delete({ where: { id } })
+app.delete('/:id', async (c) => {
+  const db = getDb(c.env.DB)
+  await db.delete(categories).where(eq(categories.id, Number(c.req.param('id'))))
   return c.json({ ok: true })
 })
 
-export default categories
+export default app

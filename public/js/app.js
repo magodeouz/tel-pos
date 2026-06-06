@@ -53,9 +53,26 @@ const API = {
     },
 };
 
-// Poll for incoming calls every 3 seconds
+// WebSocket for real-time incoming call notifications
+let _ws = null;
 let _shownCallIds = new Set();
 
+function initWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    _ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+    _ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'incoming_call') {
+            handleIncomingCall(data);
+        }
+    };
+
+    _ws.onclose = () => setTimeout(initWebSocket, 3000);
+    _ws.onerror = () => _ws.close();
+}
+
+// Fallback polling (in case WS disconnects briefly)
 async function pollIncomingCalls() {
     try {
         const calls = await API.get("/api/incoming-call/pending");
@@ -64,10 +81,9 @@ async function pollIncomingCalls() {
             if (_shownCallIds.has(call.id)) continue;
             _shownCallIds.add(call.id);
             handleIncomingCall({ ...call, type: "incoming_call" });
-            // Ack immediately so it won't show again on reload
             await API.post(`/api/incoming-call/${call.id}/ack`, {});
         }
-    } catch (e) { /* ignore network errors */ }
+    } catch (e) { /* ignore */ }
 }
 
 function playIncomingCallRing() {
@@ -99,6 +115,9 @@ function playIncomingCallRing() {
 }
 
 function handleIncomingCall(data) {
+    // Deduplicate: WS and polling might both deliver the same call
+    if (data.id && _shownCallIds.has(data.id)) return;
+    if (data.id) _shownCallIds.add(data.id);
     incomingCallData = data;
     playIncomingCallRing();
     document.getElementById("callPhone").textContent = data.phone;
@@ -231,7 +250,7 @@ function renderCustomers(customers) {
 }
 
 async function createOrderForCustomer(customerId, customerName) {
-    const order = await API.post("/api/orders/", { customer_id: customerId });
+    const order = await API.post("/api/orders", { customer_id: customerId });
     currentOrderId = order.id;
     renderOrderDetails(order);
     loadOrders();
@@ -558,7 +577,7 @@ function checkPrinterStatus() {
 
 // Event listeners
 document.getElementById("newOrderBtn").addEventListener("click", async () => {
-    const order = await API.post("/api/orders/", { customer_id: null });
+    const order = await API.post("/api/orders", { customer_id: null });
     currentOrderId = order.id;
     renderOrderDetails(order);
     loadOrders();
@@ -608,7 +627,7 @@ document.getElementById("createOrderFromCallBtn").addEventListener("click", asyn
             return;
         }
 
-        const order = await API.post("/api/orders/", { customer_id: customerId });
+        const order = await API.post("/api/orders", { customer_id: customerId });
         currentOrderId = order.id;
         renderOrderDetails(order);
         loadOrders();
@@ -669,7 +688,7 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
     // If coming from incoming call, create order
     if (window.createOrderAfterCustomer) {
         window.createOrderAfterCustomer = false;
-        const order = await API.post("/api/orders/", { customer_id: customerData.id });
+        const order = await API.post("/api/orders", { customer_id: customerData.id });
         currentOrderId = order.id;
         renderOrderDetails(order);
         loadOrders();
@@ -677,10 +696,9 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
 });
 
 function startApp() {
-    pollIncomingCalls();
-    setInterval(pollIncomingCalls, 2000);
-    // Keep Vercel function warm to avoid cold start delays
-    setInterval(() => fetch('/api/health').catch(() => {}), 20000);
+    initWebSocket();
+    // Fallback polling in case WebSocket misses a message
+    setInterval(pollIncomingCalls, 5000);
     loadCategories();
     loadOrders();
     loadCustomers();

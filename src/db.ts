@@ -1,7 +1,8 @@
-import { PrismaClient } from '@prisma/client'
+import { drizzle } from 'drizzle-orm/d1'
+import * as schema from './schema'
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+export function getDb(d1: D1Database) {
+  return drizzle(d1, { schema })
+}
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export type DB = ReturnType<typeof getDb>

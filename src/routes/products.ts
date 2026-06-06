@@ -1,47 +1,42 @@
 import { Hono } from 'hono'
-import { prisma } from '../db'
+import { eq } from 'drizzle-orm'
+import { getDb } from '../db'
+import { products, categories } from '../schema'
+import type { Env } from '../worker'
 
-const products = new Hono()
+const app = new Hono<{ Bindings: Env }>()
 
-products.get('/', async (c) => {
-  const list = await prisma.product.findMany({
-    where: { active: true },
-    include: { category: true },
-    orderBy: { name: 'asc' }
-  })
-  return c.json(list.map(p => ({
-    id: p.id,
-    category_id: p.categoryId,
-    name: p.name,
-    price: p.price,
-    note: p.note,
-    active: p.active,
-    category: { id: p.category.id, name: p.category.name }
-  })))
+app.get('/', async (c) => {
+  const db = getDb(c.env.DB)
+  const rows = await db.select().from(products).where(eq(products.active, true)).orderBy(products.name)
+  const cats = await db.select().from(categories)
+  const catMap = Object.fromEntries(cats.map(c => [c.id, c]))
+  return c.json(rows.map(p => ({ ...p, category_id: p.categoryId, category: catMap[p.categoryId] })))
 })
 
-products.post('/', async (c) => {
+app.post('/', async (c) => {
+  const db = getDb(c.env.DB)
   const body = await c.req.json()
-  const p = await prisma.product.create({
-    data: { categoryId: body.category_id, name: body.name, price: body.price, note: body.note ?? null }
-  })
-  return c.json(p, 201)
+  const [row] = await db.insert(products).values({
+    categoryId: body.category_id, name: body.name, price: body.price, note: body.note ?? null
+  }).returning()
+  return c.json(row, 201)
 })
 
-products.put('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
+app.put('/:id', async (c) => {
+  const db = getDb(c.env.DB)
   const body = await c.req.json()
-  const p = await prisma.product.update({
-    where: { id },
-    data: { categoryId: body.category_id, name: body.name, price: body.price, note: body.note ?? null, active: body.active ?? true }
-  })
-  return c.json(p)
+  const [row] = await db.update(products)
+    .set({ categoryId: body.category_id, name: body.name, price: body.price, note: body.note ?? null, active: body.active ?? true })
+    .where(eq(products.id, Number(c.req.param('id'))))
+    .returning()
+  return c.json(row)
 })
 
-products.delete('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
-  await prisma.product.update({ where: { id }, data: { active: false } })
+app.delete('/:id', async (c) => {
+  const db = getDb(c.env.DB)
+  await db.update(products).set({ active: false }).where(eq(products.id, Number(c.req.param('id'))))
   return c.json({ ok: true })
 })
 
-export default products
+export default app

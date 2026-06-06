@@ -1,64 +1,87 @@
 import { Hono } from 'hono'
-import { prisma } from '../db'
+import { eq, desc, and, gte } from 'drizzle-orm'
+import { getDb } from '../db'
+import { incomingCalls, customers, orders, orderItems, products } from '../schema'
+import type { Env } from '../worker'
 
-const incomingCall = new Hono()
+const app = new Hono<{ Bindings: Env }>()
 
-async function buildCustomerData(phone: string) {
-  const customer = await prisma.customer.findUnique({ where: { phone } })
+async function buildCustomerData(db: ReturnType<typeof getDb>, phone: string) {
+  const [customer] = await db.select().from(customers).where(eq(customers.phone, phone)).limit(1)
   if (!customer) return null
 
-  const orders = await prisma.order.findMany({
-    where: { customerId: customer.id },
-    include: { items: { include: { product: true } } },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  })
+  const recentOrders = await db.select({
+    id: orders.id, status: orders.status, createdAt: orders.createdAt,
+    itemId: orderItems.id, productId: orderItems.productId,
+    quantity: orderItems.quantity, unitPrice: orderItems.unitPrice,
+    productName: products.name,
+  }).from(orders)
+    .leftJoin(orderItems, eq(orderItems.orderId, orders.id))
+    .leftJoin(products, eq(orderItems.productId, products.id))
+    .where(eq(orders.customerId, customer.id))
+    .orderBy(desc(orders.createdAt))
+    .limit(50)
+
+  // Group by order
+  const orderMap = new Map<number, any>()
+  for (const row of recentOrders) {
+    if (!orderMap.has(row.id)) {
+      orderMap.set(row.id, { id: row.id, status: row.status, created_at: row.createdAt, items: [], total: 0 })
+    }
+    if (row.itemId) {
+      const item = { product_name: row.productName, quantity: row.quantity!, unit_price: row.unitPrice! }
+      orderMap.get(row.id).items.push(item)
+      orderMap.get(row.id).total += row.quantity! * row.unitPrice!
+    }
+  }
 
   return {
-    id: customer.id,
-    phone: customer.phone,
-    name: customer.name,
-    address: customer.address,
-    note: customer.note,
-    orders: orders.map(o => ({
-      id: o.id,
-      status: o.status,
-      created_at: o.createdAt.toISOString(),
-      items: o.items.map(i => ({ product_name: i.product.name, quantity: i.quantity, unit_price: i.unitPrice })),
-      total: o.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0),
-    }))
+    id: customer.id, phone: customer.phone, name: customer.name,
+    address: customer.address, note: customer.note,
+    orders: Array.from(orderMap.values()).slice(0, 5),
   }
 }
 
-incomingCall.post('/', async (c) => {
+// Public — APK uses this
+app.post('/', async (c) => {
+  const db = getDb(c.env.DB)
   const { phone } = await c.req.json()
   const trimmed = phone.trim()
-  await prisma.incomingCall.create({ data: { phone: trimmed } })
-  const customer = await buildCustomerData(trimmed)
-  return c.json({ ok: true, customer, found: !!customer })
+
+  // Store call in DB
+  await db.insert(incomingCalls).values({ phone: trimmed })
+
+  // Broadcast via Durable Object WebSocket
+  const hub = c.env.CALL_HUB.get(c.env.CALL_HUB.idFromName('main'))
+  const customerData = await buildCustomerData(db, trimmed)
+  await hub.fetch(new Request('https://hub/broadcast', {
+    method: 'POST',
+    body: JSON.stringify({ type: 'incoming_call', phone: trimmed, customer: customerData }),
+    headers: { 'Content-Type': 'application/json' },
+  }))
+
+  return c.json({ ok: true, customer: customerData, found: !!customerData })
 })
 
-incomingCall.get('/pending', async (c) => {
-  const cutoff = new Date(Date.now() - 2 * 60 * 1000)
-  const calls = await prisma.incomingCall.findMany({
-    where: { acknowledged: false, createdAt: { gte: cutoff } },
-    orderBy: { createdAt: 'desc' },
-  })
+// Protected — browser uses these
+app.get('/pending', async (c) => {
+  const db = getDb(c.env.DB)
+  const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+  const calls = await db.select().from(incomingCalls)
+    .where(and(eq(incomingCalls.acknowledged, false), gte(incomingCalls.createdAt, cutoff)))
+    .orderBy(desc(incomingCalls.createdAt))
 
   const result = await Promise.all(calls.map(async (call) => ({
-    id: call.id,
-    phone: call.phone,
-    created_at: call.createdAt.toISOString(),
-    customer: await buildCustomerData(call.phone),
+    id: call.id, phone: call.phone, created_at: call.createdAt,
+    customer: await buildCustomerData(db, call.phone),
   })))
-
   return c.json(result)
 })
 
-incomingCall.post('/:id/ack', async (c) => {
-  const id = Number(c.req.param('id'))
-  await prisma.incomingCall.update({ where: { id }, data: { acknowledged: true } })
+app.post('/:id/ack', async (c) => {
+  const db = getDb(c.env.DB)
+  await db.update(incomingCalls).set({ acknowledged: true }).where(eq(incomingCalls.id, Number(c.req.param('id'))))
   return c.json({ ok: true })
 })
 
-export default incomingCall
+export default app
