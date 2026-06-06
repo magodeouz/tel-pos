@@ -365,8 +365,13 @@ function renderAllOrders(orders) {
                         <td>${order.items.length}</td>
                         <td><strong>${order.total.toFixed(2)} TL</strong></td>
                         <td>
-                            <span class="status-badge ${getStatusBadgeColor(order.status)}">${getStatusText(order.status)}</span>
-                            ${order.status !== 'paid' ? `<br><button class="action-btn enabled print" style="padding:2px 6px;font-size:.68rem;border-radius:4px;margin-top:3px;" data-mark-paid="${order.id}">✓ Ödendi</button>` : ''}
+                            ${order.status === 'cancelled'
+                                ? `<span class="status-badge status-cancelled">İptal</span>`
+                                : order.status === 'paid'
+                                    ? `<span class="status-badge status-paid">${getPaymentLabel(order.payment_method)}</span>`
+                                    : `<span class="status-badge status-open">Açık</span>
+                                       <br><button class="action-btn enabled print" style="padding:2px 6px;font-size:.68rem;border-radius:4px;margin-top:3px;" data-mark-paid="${order.id}">✓ Ödendi</button>`
+                            }
                         </td>
                         <td style="text-align:center;">
                             <button class="action-btn enabled cancel-action" style="padding:2px 8px;font-size:.72rem;border-radius:4px;" data-open-detail="${order.id}">Aç</button>
@@ -384,6 +389,11 @@ function renderAllOrders(orders) {
 function getStatusText(status) {
     const texts = { open: "Açık", paid: "Ödendi", cancelled: "İptal" };
     return texts[status] || status;
+}
+
+function getPaymentLabel(method) {
+    const map = { nakit: '💵 Nakit', kredi_karti: '💳 Kart', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: 'Ödendi' };
+    return map[method] || 'Ödendi';
 }
 
 function getStatusBadgeColor(status) {
