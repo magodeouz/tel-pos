@@ -1,0 +1,49 @@
+name: D1 Daily Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # Her gece 02:00 UTC (05:00 Türkiye)
+  workflow_dispatch:        # Manuel tetikleme
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install wrangler
+        run: npm install -g wrangler
+
+      - name: Export D1 database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          mkdir -p backups
+          wrangler d1 export tel-pos-db --remote --output "backups/backup-$DATE.sql"
+          echo "Backup size: $(wc -l < backups/backup-$DATE.sql) lines"
+
+      - name: Keep only last 30 backups
+        run: |
+          cd backups
+          ls -t backup-*.sql | tail -n +31 | xargs -r rm -f
+          echo "Remaining backups: $(ls backup-*.sql | wc -l)"
+
+      - name: Commit backup
+        run: |
+          git config user.name "backup-bot"
+          git config user.email "backup@tel-pos"
+          DATE=$(date +%Y-%m-%d)
+          git add backups/
+          git diff --staged --quiet || git commit -m "backup: D1 snapshot $DATE"
+          git push
