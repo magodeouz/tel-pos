@@ -68,28 +68,37 @@ app.get('/:id/receipt', async (c) => {
   if (built.discount_percent) discountVal += subtotal * (built.discount_percent / 100)
   const total = Math.max(0, subtotal - discountVal)
 
-  const paymentMap: Record<string, string> = { nakit: 'Nakit', kredi_karti: 'Kredi Kartı', cari: 'Cari', odenmes: 'Ödenmez', pending: '-' }
+  const paymentMap: Record<string, string> = { nakit: '💵 Nakit', kredi_karti: '💳 Kredi Kartı', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: '-' }
   const paymentLabel = paymentMap[built.payment_method ?? 'pending'] ?? built.payment_method ?? '-'
   const itemsHtml = built.items.map(i => `<div class="item"><span>${i.product_name} x${i.quantity}</span><span>${(i.quantity * i.unit_price).toFixed(2)} TL</span></div>`).join('')
   const discountHtml = discountVal > 0 ? `<div class="item" style="color:#c00"><span>İndirim</span><span>-${discountVal.toFixed(2)} TL</span></div>` : ''
-  const noteHtml = built.note ? `<p style="font-size:0.8em;color:#666">Not: ${built.note}</p>` : ''
+  const noteHtml = built.note ? `<p style="font-size:0.8em;color:#666;margin:4px 0">Not: ${built.note}</p>` : ''
+  const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('tr-TR') : ''
 
   return c.html(`<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8"><title>Sipariş #${order.id}</title>
 <style>@media print{body{margin:0;}.no-print{display:none;}}
 body{font-family:monospace;width:80mm;max-width:80mm;margin:0 auto;padding:10px;font-size:13px;}
-h2{text-align:center;margin:0 0 4px;font-size:16px;}.center{text-align:center;}
+h2{text-align:center;margin:0 0 2px;font-size:16px;}
+.center{text-align:center;}
 hr{border:none;border-top:1px dashed #000;margin:6px 0;}
-.item{display:flex;justify-content:space-between;margin:2px 0;}
-.total{font-weight:bold;font-size:15px;}
+.item{display:flex;justify-content:space-between;margin:3px 0;}
+.total{font-weight:bold;font-size:15px;border-top:2px solid #000;padding-top:4px;margin-top:2px;}
+.payment-box{border:2px solid #000;border-radius:3px;padding:4px 8px;text-align:center;margin:6px 0;font-size:13px;font-weight:bold;}
 .btn{display:block;width:100%;padding:8px;background:#333;color:#fff;border:none;cursor:pointer;font-size:14px;margin-top:12px;border-radius:4px;}</style>
 </head><body>
 <h2>EFE POS</h2>
-<p class="center" style="margin:2px 0;font-size:11px">Sipariş #${order.id} | ${order.createdAt}</p>
-<hr>${itemsHtml}<hr>${discountHtml}
+<p class="center" style="margin:2px 0;font-size:10px">Sipariş #${order.id}</p>
+<p class="center" style="margin:2px 0;font-size:10px">${dateStr}</p>
+<hr>
+${itemsHtml}
+<hr>
+${discountHtml}
 <div class="item total"><span>TOPLAM</span><span>${total.toFixed(2)} TL</span></div>
-<div class="item" style="font-size:11px;color:#555"><span>Ödeme</span><span>${paymentLabel}</span></div>
-${noteHtml}<hr>
+<hr>
+<div class="payment-box">ÖDEME: ${paymentLabel}</div>
+${noteHtml}
+<hr>
 <p class="center" style="font-size:11px">Teşekkür ederiz!</p>
 <div class="no-print"><button class="btn" onclick="window.print()">🖨️ Yazdır</button></div>
 <script>window.onload=function(){window.print();}</script>
