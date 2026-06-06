@@ -20,6 +20,20 @@ function logout() {
     window.location.href = '/';
 }
 
+let _editCustomerId = null;
+
+async function openEditCustomer(customerId) {
+    const c = await API.get(`/api/customers/${customerId}`);
+    if (!c || !c.id) return;
+    _editCustomerId = customerId;
+    document.getElementById('editCustPhone').value = c.phone;
+    document.getElementById('editCustName').value = c.name;
+    document.getElementById('editCustAddress').value = c.address || '';
+    document.getElementById('editCustNote').value = c.note || '';
+    document.getElementById('editCustError').style.display = 'none';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editCustomerModal')).show();
+}
+
 function openChangePassword() {
     document.getElementById('currentPassword').value = '';
     document.getElementById('newPassword').value = '';
@@ -28,6 +42,30 @@ function openChangePassword() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('saveEditCustomerBtn')?.addEventListener('click', async () => {
+        if (!_editCustomerId) return;
+        const phone = document.getElementById('editCustPhone').value.trim();
+        const name  = document.getElementById('editCustName').value.trim();
+        const address = document.getElementById('editCustAddress').value.trim();
+        const note  = document.getElementById('editCustNote').value.trim();
+        const errEl = document.getElementById('editCustError');
+        if (!phone || !name) { errEl.textContent = 'Telefon ve isim zorunlu.'; errEl.style.display = 'block'; return; }
+
+        const res = await fetch(`/api/customers/${_editCustomerId}`, {
+            method: 'PUT', headers: authHeaders(),
+            body: JSON.stringify({ phone, name, address: address || null, note: note || null }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('editCustomerModal')).hide();
+            loadCustomers();
+            loadOrders();
+        } else {
+            const d = await res.json().catch(() => ({}));
+            errEl.textContent = d.detail || 'Hata oluştu.';
+            errEl.style.display = 'block';
+        }
+    });
+
     document.getElementById('savePasswordBtn')?.addEventListener('click', async () => {
         const current = document.getElementById('currentPassword').value;
         const next = document.getElementById('newPassword').value;
@@ -350,9 +388,15 @@ function renderCustomers(customers) {
     container.innerHTML = customers
         .map(c => `
         <div class="customer-card" onclick="createOrderForCustomer(${c.id}, '${c.name.replace(/'/g,"\\'")}')">
-            <div class="customer-card-name">${c.name}</div>
-            <div class="customer-card-phone">${c.phone}</div>
-            ${c.address ? `<div class="customer-card-address">${c.address}</div>` : ''}
+            <div class="customer-card-top" style="display:flex;align-items:center;gap:4px;">
+                <div style="flex:1">
+                    <div class="customer-card-name">${c.name}</div>
+                    <div class="customer-card-phone">${c.phone}</div>
+                    ${c.address ? `<div class="customer-card-address">${c.address}</div>` : ''}
+                </div>
+                <button class="order-item-del" style="font-size:.8rem;opacity:.7;flex-shrink:0;"
+                    onclick="event.stopPropagation(); openEditCustomer(${c.id})" title="Düzenle">✏️</button>
+            </div>
         </div>
     `).join("");
 }

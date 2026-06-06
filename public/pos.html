@@ -19,6 +19,7 @@
     <div class="nav-spacer"></div>
     <span id="currentTime" class="time-display"></span>
     <span id="wsStatus" class="ws-dot" title="Bağlantı durumu"></span>
+    <button class="nav-btn" onclick="window.open('/api/reports/day-close','_blank')" title="Gün kapanış raporu">📋 Kapanış</button>
     <button class="nav-btn" onclick="window.open('/management','_blank')">⚙ Yönetim</button>
     <span id="usernameDisplay" style="color:#94a3b8;font-size:.8rem;cursor:pointer;" onclick="openChangePassword()" title="Şifre değiştir 🔑"></span>
     <button class="nav-btn danger" id="logoutBtn">Çıkış</button>
@@ -252,6 +253,41 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
           <button type="button" class="btn btn-primary" id="saveCustomerBtn">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Customer Modal -->
+  <div class="modal fade" id="editCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">✏️ Müşteri Düzenle</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;">Telefon *</label>
+            <input type="tel" class="form-control" id="editCustPhone">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;">İsim *</label>
+            <input type="text" class="form-control" id="editCustName">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.85rem;">Adres</label>
+            <input type="text" class="form-control" id="editCustAddress">
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold" style="font-size:.85rem;">Not</label>
+            <textarea class="form-control" id="editCustNote" rows="2"></textarea>
+          </div>
+          <div id="editCustError" style="color:#ef4444;font-size:.8rem;display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
+          <button type="button" class="btn btn-primary" id="saveEditCustomerBtn">Kaydet</button>
         </div>
       </div>
     </div>

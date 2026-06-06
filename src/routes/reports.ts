@@ -78,4 +78,110 @@ app.get('/customer-spending', async (c) => {
   })
 })
 
+// Day closing report — HTML printable summary
+app.get('/day-close', async (c) => {
+  const db = getDb(c.env.DB)
+
+  // Today's date in SQLite format
+  const today = new Date().toISOString().replace('T', ' ').slice(0, 10)
+  const todayStart = today + ' 00:00:00'
+  const todayEnd   = today + ' 23:59:59'
+
+  const allOrders = await db.select().from(orders)
+  const todayOrders = allOrders.filter(o =>
+    o.createdAt && o.createdAt >= todayStart && o.createdAt <= todayEnd
+  )
+
+  const items = await db.select({
+    orderId: orderItems.orderId, quantity: orderItems.quantity,
+    unitPrice: orderItems.unitPrice, name: products.name,
+  }).from(orderItems).innerJoin(products, eq(orderItems.productId, products.id))
+
+  const getTotal = (orderId: number) =>
+    items.filter(i => i.orderId === orderId).reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+
+  const paid       = todayOrders.filter(o => o.status === 'paid')
+  const cancelled  = todayOrders.filter(o => o.status === 'cancelled')
+  const open       = todayOrders.filter(o => o.status === 'open')
+
+  const paidTotal  = paid.reduce((s, o) => s + getTotal(o.id), 0)
+
+  // Payment breakdown
+  const byPayment: Record<string, { label: string; count: number; total: number }> = {
+    nakit:       { label: 'Nakit',       count: 0, total: 0 },
+    kredi_karti: { label: 'Kredi Kartı', count: 0, total: 0 },
+    cari:        { label: 'Cari',        count: 0, total: 0 },
+    odenmes:     { label: 'Ödenmez',     count: 0, total: 0 },
+  }
+  for (const o of paid) {
+    const m = o.paymentMethod ?? 'nakit'
+    if (byPayment[m]) { byPayment[m].count++; byPayment[m].total += getTotal(o.id) }
+  }
+
+  // Top products
+  const prodMap: Record<string, { name: string; qty: number; rev: number }> = {}
+  const paidIds = new Set(paid.map(o => o.id))
+  for (const i of items) {
+    if (!paidIds.has(i.orderId)) continue
+    if (!prodMap[i.name]) prodMap[i.name] = { name: i.name, qty: 0, rev: 0 }
+    prodMap[i.name].qty += i.quantity
+    prodMap[i.name].rev += i.quantity * i.unitPrice
+  }
+  const topProds = Object.values(prodMap).sort((a, b) => b.rev - a.rev).slice(0, 10)
+
+  const restName  = c.env.RESTAURANT_NAME  ?? 'EFE BÜFE'
+  const restAddr  = c.env.RESTAURANT_ADDRESS ?? ''
+  const restPhone = c.env.RESTAURANT_PHONE  ?? ''
+  const dateStr   = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' })
+
+  const payRows = Object.values(byPayment).filter(p => p.count > 0)
+    .map(p => `<tr><td>${p.label}</td><td>${p.count}</td><td>${p.total.toFixed(2)} ₺</td></tr>`).join('')
+
+  const prodRows = topProds
+    .map(p => `<tr><td>${p.name}</td><td>${p.qty}</td><td>${p.rev.toFixed(2)} ₺</td></tr>`).join('')
+
+  return c.html(`<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8"><title>Gün Kapanış — ${today}</title>
+<style>
+@media print{.no-print{display:none;} body{margin:0}}
+body{font-family:monospace;max-width:80mm;margin:0 auto;padding:12px;font-size:12px;}
+h2{text-align:center;margin:0 0 2px;font-size:15px;}
+h3{margin:8px 0 4px;font-size:12px;border-bottom:1px dashed #000;padding-bottom:2px;}
+.center{text-align:center;}
+hr{border:none;border-top:2px solid #000;margin:6px 0;}
+table{width:100%;border-collapse:collapse;}
+td{padding:2px 0;}
+td:last-child{text-align:right;}
+.big{font-size:16px;font-weight:bold;}
+.btn{display:block;width:100%;padding:8px;background:#333;color:#fff;border:none;cursor:pointer;font-size:13px;margin-top:10px;border-radius:4px;}
+</style></head><body>
+<h2>${restName}</h2>
+${restAddr  ? `<p class="center" style="font-size:10px;margin:1px 0">${restAddr}</p>` : ''}
+${restPhone ? `<p class="center" style="font-size:10px;margin:1px 0">Tel: ${restPhone}</p>` : ''}
+<p class="center" style="font-size:11px;margin:4px 0"><strong>GÜN KAPANIŞ RAPORU</strong></p>
+<p class="center" style="font-size:10px;margin:2px 0">${dateStr}</p>
+<hr>
+<h3>Özet</h3>
+<table>
+  <tr><td>Ödenen Sipariş</td><td><strong>${paid.length}</strong></td></tr>
+  <tr><td>İptal Sipariş</td><td>${cancelled.length}</td></tr>
+  <tr><td>Açık Sipariş</td><td>${open.length}</td></tr>
+</table>
+<div style="margin:6px 0;padding:6px;border:2px solid #000;text-align:center;">
+  <div style="font-size:10px">TOPLAM CİRO</div>
+  <div class="big">${paidTotal.toFixed(2)} ₺</div>
+</div>
+${payRows ? `<h3>Ödeme Yöntemleri</h3>
+<table><tr><td><b>Yöntem</b></td><td><b>Adet</b></td><td><b>Tutar</b></td></tr>${payRows}</table>` : ''}
+${prodRows ? `<h3>En Çok Satılan Ürünler</h3>
+<table><tr><td><b>Ürün</b></td><td><b>Adet</b></td><td><b>Tutar</b></td></tr>${prodRows}</table>` : ''}
+<hr>
+<p class="center" style="font-size:10px">Rapor: ${new Date().toLocaleTimeString('tr-TR')}</p>
+<div class="no-print">
+  <button class="btn" onclick="window.print()">🖨️ Yazdır</button>
+</div>
+<script>window.onload=function(){window.print()}</script>
+</body></html>`)
+})
+
 export default app

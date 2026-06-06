@@ -17,6 +17,8 @@ export interface Env {
   ASSETS: Fetcher
   JWT_SECRET?: string
   RESTAURANT_NAME?: string
+  RESTAURANT_ADDRESS?: string
+  RESTAURANT_PHONE?: string
 }
 
 const app = new Hono<{ Bindings: Env }>()
@@ -33,9 +35,13 @@ app.get('/ws', (c) => {
 app.route('/api/auth', authRoute)
 app.get('/api/health', (c) => c.json({ ok: true }))
 app.get('/api/printer/status', (c) => c.json({ connected: false }))
-// Receipt is public — window.open() can't send Authorization headers
+// Receipt + day-close are public (window.open can't send auth headers)
 app.get('/api/orders/:id/receipt', (c) => ordersRoute.fetch(
   new Request(c.req.url.replace('/api/orders', ''), c.req.raw),
+  c.env
+))
+app.get('/api/reports/day-close', (c) => reportsRoute.fetch(
+  new Request(c.req.url.replace('/api/reports', ''), c.req.raw),
   c.env
 ))
 app.post('/api/incoming-call', (c) => incomingCallRoute.fetch(

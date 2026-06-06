@@ -75,6 +75,10 @@ app.get('/:id/receipt', async (c) => {
   const noteHtml = built.note ? `<p style="font-size:0.8em;color:#666;margin:4px 0">Not: ${built.note}</p>` : ''
   const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('tr-TR') : ''
 
+  const restName = c.env.RESTAURANT_NAME ?? 'EFE BÜFE'
+  const restAddr = c.env.RESTAURANT_ADDRESS ?? ''
+  const restPhone = c.env.RESTAURANT_PHONE ?? ''
+
   return c.html(`<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8"><title>Sipariş #${order.id}</title>
 <style>@media print{body{margin:0;}.no-print{display:none;}}
@@ -87,7 +91,9 @@ hr{border:none;border-top:1px dashed #000;margin:6px 0;}
 .payment-box{border:2px solid #000;border-radius:3px;padding:4px 8px;text-align:center;margin:6px 0;font-size:13px;font-weight:bold;}
 .btn{display:block;width:100%;padding:8px;background:#333;color:#fff;border:none;cursor:pointer;font-size:14px;margin-top:12px;border-radius:4px;}</style>
 </head><body>
-<h2>EFE BÜFE</h2>
+<h2>${restName}</h2>
+${restAddr ? `<p class="center" style="margin:1px 0;font-size:10px">${restAddr}</p>` : ''}
+${restPhone ? `<p class="center" style="margin:1px 0;font-size:10px">Tel: ${restPhone}</p>` : ''}
 <p class="center" style="margin:2px 0;font-size:10px">Sipariş #${order.id}</p>
 <p class="center" style="margin:2px 0;font-size:10px">${dateStr}</p>
 <hr>
