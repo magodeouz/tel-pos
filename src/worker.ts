@@ -73,8 +73,14 @@ app.route('/api/incoming-call', incomingCallRoute)
 app.route('/api/reports', reportsRoute)
 
 // ── HTML pages → serve from ASSETS ───────────────────────────
-const serveAsset = (file: string) => (c: any) =>
-  c.env.ASSETS.fetch(new Request(`${new URL(c.req.url).origin}/${file}`))
+// HTML must never be cached, so the ?v= cache-bust on js/css is always
+// re-read and clients pick up new code immediately after deploy.
+const serveAsset = (file: string) => async (c: any) => {
+  const res = await c.env.ASSETS.fetch(new Request(`${new URL(c.req.url).origin}/${file}`))
+  const out = new Response(res.body, res)
+  out.headers.set('Cache-Control', 'no-cache, must-revalidate')
+  return out
+}
 
 app.get('/', serveAsset('login.html'))
 app.get('/pos', serveAsset('pos.html'))
