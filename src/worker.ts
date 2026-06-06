@@ -58,7 +58,7 @@ const serveAsset = (file: string) => (c: any) =>
   c.env.ASSETS.fetch(new Request(`${new URL(c.req.url).origin}/${file}`))
 
 app.get('/', serveAsset('login.html'))
-app.get('/pos', serveAsset('index.html'))
+app.get('/pos', serveAsset('pos.html'))
 app.get('/admin', serveAsset('admin.html'))
 app.get('/management', serveAsset('management.html'))
 app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /', 200, { 'X-Robots-Tag': 'noindex, nofollow' }))
