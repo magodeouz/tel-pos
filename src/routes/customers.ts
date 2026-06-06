@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import { getDb } from '../db'
 import { customers, orders, orderItems, products } from '../schema'
 import type { Env } from '../worker'
@@ -78,12 +78,31 @@ app.get('/:id/detail', async (c) => {
     items: items.filter(i => i.orderId === o.id).map(i => ({ name: i.name, quantity: i.quantity, unit_price: i.unitPrice })),
   }))
 
-  // Cari balance = sum of paid orders with payment_method=cari
-  const cariBalance = ordersWithTotal
+  // Cari balance = cari orders - cari payments received
+  const cariOrders = ordersWithTotal
     .filter(o => o.status === 'paid' && o.payment_method === 'cari')
     .reduce((s, o) => s + o.total, 0)
 
+  const paymentsRow = await c.env.DB
+    .prepare('SELECT COALESCE(SUM(amount),0) as total FROM cari_payments WHERE customer_id = ?')
+    .bind(id).first<{total: number}>()
+  const cariPaid = paymentsRow?.total ?? 0
+  const cariBalance = Math.max(0, cariOrders - cariPaid)
+
   return c.json({ ...normalize(cust), orders: ordersWithTotal, cari_balance: cariBalance })
+})
+
+// Cari tahsilat — record a payment received from customer
+app.post('/:id/cari-payment', async (c) => {
+  const id = Number(c.req.param('id'))
+  const { amount, note } = await c.req.json()
+  if (!amount || amount <= 0) return c.json({ detail: 'Geçersiz tutar' }, 400)
+
+  await c.env.DB
+    .prepare('INSERT INTO cari_payments (customer_id, amount, note) VALUES (?, ?, ?)')
+    .bind(id, amount, note ?? '').run()
+
+  return c.json({ ok: true })
 })
 
 export default app

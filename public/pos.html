@@ -41,26 +41,20 @@
           <div id="ordersList"><p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:20px;">Yükleniyor...</p></div>
         </div>
         <div class="tab-pane" id="customers-panel">
-          <div style="padding:4px 0 6px;">
+          <div style="padding:4px 0 4px;">
             <input type="search" id="customerSearch" placeholder="🔍 İsim, telefon, adres..."
               oninput="filterCustomers(this.value)"
-              style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;font-size:.78rem;outline:none;font-family:inherit;background:#fafafa;">
+              style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;font-size:.78rem;outline:none;font-family:inherit;background:#fafafa;margin-bottom:5px;">
+            <button onclick="openNewCustomerModal()"
+              style="width:100%;background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:6px;font-size:.78rem;font-weight:600;cursor:pointer;">
+              + Yeni Müşteri Ekle
+            </button>
           </div>
           <div id="customersList"><p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:20px;">Yükleniyor...</p></div>
         </div>
       </div>
-      <div class="panel-footer" style="display:flex;gap:6px;">
-        <button class="new-order-btn" id="newOrderBtn" style="flex:1;">+ Yeni Sipariş</button>
-        <button class="new-order-btn" id="addCustomerBtn"
-          style="flex:0 0 auto;background:#3b82f6;padding:9px 12px;font-size:.78rem;"
-          onclick="document.getElementById('customerPhone').value='';
-                   document.getElementById('customerName').value='';
-                   document.getElementById('customerSurname').value='';
-                   document.getElementById('customerAddress').value='';
-                   document.getElementById('customerNote').value='';
-                   bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal')).show();">
-          + Müşteri
-        </button>
+      <div class="panel-footer">
+        <button class="new-order-btn" id="newOrderBtn">+ Yeni Sipariş</button>
       </div>
     </div>
 
@@ -297,8 +291,16 @@
           </div>
           <!-- Cari balance -->
           <div id="custDetailCari" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
-            <div style="font-size:.72rem;font-weight:700;color:#92400e;text-transform:uppercase;">📋 Cari Bakiye (Toplam Borç)</div>
-            <div id="custDetailCariAmount" style="font-size:1.4rem;font-weight:800;color:#92400e;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:.72rem;font-weight:700;color:#92400e;text-transform:uppercase;">📋 Cari Bakiye (Toplam Borç)</div>
+                <div id="custDetailCariAmount" style="font-size:1.4rem;font-weight:800;color:#92400e;"></div>
+              </div>
+              <button id="custDetailCariPayBtn" class="btn btn-sm"
+                style="background:#d97706;color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:.78rem;font-weight:700;cursor:pointer;">
+                💰 Tahsilat Al
+              </button>
+            </div>
           </div>
           <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px;">Sipariş Geçmişi</div>
           <div id="custDetailOrders" style="max-height:260px;overflow-y:auto;"></div>
@@ -306,6 +308,40 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Kapat</button>
           <button type="button" class="btn btn-primary btn-sm" id="custDetailOrderBtn">🛒 Sipariş Aç</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cari Tahsilat Modal -->
+  <div class="modal fade" id="cariTahsilatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header" style="background:#d97706;color:#fff;">
+          <h5 class="modal-title">💰 Cari Tahsilat</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div style="font-size:.82rem;margin-bottom:8px;">
+            <strong id="cariTahsilatName"></strong> —
+            Bakiye: <strong id="cariTahsilatBalance" style="color:#d97706;"></strong>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Alınan Tutar (₺) *</label>
+            <input type="number" class="form-control" id="cariTahsilatAmount" placeholder="0,00" min="0" step="0.01">
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Not</label>
+            <input type="text" class="form-control form-control-sm" id="cariTahsilatNote" placeholder="İsteğe bağlı">
+          </div>
+          <div id="cariTahsilatError" style="color:#ef4444;font-size:.8rem;display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+          <button type="button" class="btn btn-sm" id="saveCariTahsilatBtn"
+            style="background:#d97706;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-weight:600;">
+            Kaydet
+          </button>
         </div>
       </div>
     </div>

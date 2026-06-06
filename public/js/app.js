@@ -1,3 +1,9 @@
+// ── Number formatting ────────────────────────────────────────
+// Turkish format: 1.234,56 ₺
+function fmt(n) {
+    return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 let currentOrderId = null;
 let categories = [];
 let customers = {};
@@ -91,30 +97,39 @@ async function openCustomerDetail(customerId) {
     const cariEl = document.getElementById('custDetailCari');
     if (d.cari_balance > 0) {
         cariEl.style.display = 'block';
-        document.getElementById('custDetailCariAmount').textContent = d.cari_balance.toFixed(2) + ' ₺';
+        document.getElementById('custDetailCariAmount').textContent = fmt(d.cari_balance) + ' ₺';
     } else {
         cariEl.style.display = 'none';
     }
 
-    const statusMap = { open: 'Açık', paid: 'Ödendi', cancelled: 'İptal' };
+    const statusMap = { open: 'Açık', paid: 'Ödendi', cancelled: 'İptal', cari: 'Cari' };
     const payMap = { nakit: '💵 Nakit', kredi_karti: '💳 Kart', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: '—' };
     const orders = d.orders || [];
 
+    // Cari tahsilat butonu
+    document.getElementById('custDetailCariPayBtn').onclick = () => openCariTahsilat(d.id, d.name, d.cari_balance);
+    document.getElementById('custDetailCariPayBtn').style.display = d.cari_balance > 0 ? '' : 'none';
+
     document.getElementById('custDetailOrders').innerHTML = orders.length === 0
         ? '<p class="text-muted" style="font-size:.8rem;">Sipariş yok</p>'
-        : orders.slice(0, 20).map(o => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:.8rem;">
+        : orders.slice(0, 30).map(o => {
+            const isCari = o.payment_method === 'cari';
+            const statusLabel = isCari ? '📋 Cari' : statusMap[o.status] || o.status;
+            const statusClass = isCari ? 'status-open' : `status-${o.status}`;
+            return `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:.8rem;cursor:pointer;"
+                 onclick="showOrderDetail(${o.id})">
                 <div>
                     <strong>#${o.id}</strong>
                     <span style="color:#64748b;margin-left:6px;">${new Date(o.created_at).toLocaleDateString('tr-TR')}</span>
                     <span style="margin-left:6px;">${payMap[o.payment_method] || ''}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <strong>${o.total.toFixed(2)} ₺</strong>
-                    <span class="status-badge status-${o.status}">${statusMap[o.status] || o.status}</span>
+                    <strong>${fmt(o.total)} ₺</strong>
+                    <span class="status-badge ${statusClass}">${statusLabel}</span>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
 
     // Store id for "Sipariş Aç" button
     document.getElementById('custDetailOrderBtn').onclick = () => {
@@ -123,6 +138,18 @@ async function openCustomerDetail(customerId) {
     };
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('customerDetailModal')).show();
+}
+
+// Cari tahsilat — collect payment from customer
+let _cariTahsilatCustomerId = null;
+function openCariTahsilat(customerId, name, balance) {
+    _cariTahsilatCustomerId = customerId;
+    document.getElementById('cariTahsilatName').textContent = name;
+    document.getElementById('cariTahsilatBalance').textContent = fmt(balance) + ' ₺';
+    document.getElementById('cariTahsilatAmount').value = '';
+    document.getElementById('cariTahsilatNote').value = '';
+    document.getElementById('cariTahsilatError').style.display = 'none';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('cariTahsilatModal')).show();
 }
 
 let _editCustomerId = null;
@@ -139,6 +166,15 @@ async function openEditCustomer(customerId) {
     bootstrap.Modal.getOrCreateInstance(document.getElementById('editCustomerModal')).show();
 }
 
+function openNewCustomerModal() {
+    document.getElementById('customerPhone').value = '';
+    document.getElementById('customerName').value = '';
+    document.getElementById('customerSurname').value = '';
+    document.getElementById('customerAddress').value = '';
+    document.getElementById('customerNote').value = '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal')).show();
+}
+
 function openChangePassword() {
     document.getElementById('currentPassword').value = '';
     document.getElementById('newPassword').value = '';
@@ -147,6 +183,27 @@ function openChangePassword() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('saveCariTahsilatBtn')?.addEventListener('click', async () => {
+        const amount = parseFloat(document.getElementById('cariTahsilatAmount').value);
+        const note = document.getElementById('cariTahsilatNote').value.trim();
+        const errEl = document.getElementById('cariTahsilatError');
+        if (!amount || amount <= 0) { errEl.textContent = 'Geçerli bir tutar girin.'; errEl.style.display = 'block'; return; }
+
+        const res = await fetch(`/api/customers/${_cariTahsilatCustomerId}/cari-payment`, {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ amount, note }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('cariTahsilatModal')).hide();
+            // Refresh customer detail
+            openCustomerDetail(_cariTahsilatCustomerId);
+        } else {
+            const d = await res.json().catch(() => ({}));
+            errEl.textContent = d.detail || 'Hata oluştu.';
+            errEl.style.display = 'block';
+        }
+    });
+
     document.getElementById('saveEditCustomerBtn')?.addEventListener('click', async () => {
         if (!_editCustomerId) return;
         const phone = document.getElementById('editCustPhone').value.trim();
@@ -376,13 +433,13 @@ function handleIncomingCall(data) {
                             ${order.items
                                 .map(
                                     (item) => `
-                                <div>${item.product_name} × ${item.quantity} = ${(item.quantity * item.unit_price).toFixed(2)} TL</div>
+                                <div>${item.product_name} × ${item.quantity} = ${fmt(item.quantity * item.unit_price)} TL</div>
                             `
                                 )
                                 .join("")}
                         </div>
                         <div class="mt-2">
-                            <strong>Toplam: ${order.total.toFixed(2)} TL</strong>
+                            <strong>Toplam: ${fmt(order.total)} TL</strong>
                         </div>
                         ${order.note ? `<div class="mt-2 text-muted"><small>Not: ${order.note}</small></div>` : ""}
                     </div>
@@ -435,7 +492,7 @@ function renderCategories() {
                 ${cat.products.filter(p => p.active).map(prod => `
                     <button class="product-btn" data-product-id="${prod.id}" title="${(prod.note || '').replace(/"/g, '&quot;')}">
                         <span>${prod.name}</span>
-                        <span class="product-price">${prod.price.toFixed(2)} ₺</span>
+                        <span class="product-price">${fmt(prod.price)} ₺</span>
                         ${prod.note ? `<span class="product-note-text">${prod.note}</span>` : ''}
                     </button>
                 `).join('')}
@@ -537,7 +594,7 @@ function renderOrders(orders) {
         <div class="order-card ${isActive ? 'active' : ''}" onclick="selectOrder(${order.id})">
             <div class="order-card-top">
                 <span class="order-card-id">#${order.id}</span>
-                <span class="order-card-total">${order.total.toFixed(2)} ₺</span>
+                <span class="order-card-total">${fmt(order.total)} ₺</span>
                 <button class="cancel-order-btn" onclick="cancelOrderFromList(${order.id}, event)" title="İptal">×</button>
             </div>
             <div class="order-card-customer">${customerName}</div>
@@ -589,14 +646,16 @@ function renderAllOrders(orders) {
                         <td>${customerName}</td>
                         <td><small>${new Date(order.created_at).toLocaleString("tr-TR")}</small></td>
                         <td>${order.items.length}</td>
-                        <td><strong>${order.total.toFixed(2)} TL</strong></td>
+                        <td><strong>${fmt(order.total)} TL</strong></td>
                         <td>
                             ${order.status === 'cancelled'
                                 ? `<span class="status-badge status-cancelled">İptal</span>`
-                                : order.status === 'paid'
-                                    ? `<span class="status-badge status-paid">${getPaymentLabel(order.payment_method)}</span>`
-                                    : `<span class="status-badge status-open">Açık</span>
-                                       <br><button class="action-btn enabled print" style="padding:2px 6px;font-size:.68rem;border-radius:4px;margin-top:3px;" data-mark-paid="${order.id}">✓ Ödendi</button>`
+                                : order.status === 'paid' && order.payment_method === 'cari'
+                                    ? `<span class="status-badge status-open">📋 Cari</span>`
+                                    : order.status === 'paid'
+                                        ? `<span class="status-badge status-paid">${getPaymentLabel(order.payment_method)}</span>`
+                                        : `<span class="status-badge status-open">Açık</span>
+                                           <br><button class="action-btn enabled print" style="padding:2px 6px;font-size:.68rem;border-radius:4px;margin-top:3px;" data-mark-paid="${order.id}">✓ Ödendi</button>`
                             }
                         </td>
                         <td style="text-align:center;">
@@ -635,14 +694,14 @@ async function showOrderDetail(orderId) {
     document.getElementById("detailStatus").textContent = getStatusText(order.status);
     document.getElementById("detailStatus").className = `status-badge ${getStatusBadgeColor(order.status)}`;
     document.getElementById("detailDate").textContent = new Date(order.created_at).toLocaleString("tr-TR");
-    document.getElementById("detailTotal").textContent = `${order.total.toFixed(2)} TL`;
+    document.getElementById("detailTotal").textContent = `${fmt(order.total)} TL`;
     document.getElementById("detailNote").textContent = order.note || "—";
 
     document.getElementById("detailItems").innerHTML = order.items.map(item => `
         <div class="row mb-2 pb-2 border-bottom">
             <div class="col-8">${item.product_name}</div>
             <div class="col-2 text-center">${item.quantity}x</div>
-            <div class="col-2 text-end">${(item.quantity * item.unit_price).toFixed(2)} TL</div>
+            <div class="col-2 text-end">${fmt(item.quantity * item.unit_price)} TL</div>
         </div>
     `).join("");
 
@@ -694,7 +753,7 @@ function renderOrderDetails(order) {
         : "Müşteri Yok";
 
     titleDiv.textContent = `Sipariş #${order.id} - ${customerName}`;
-    totalDiv.textContent = `${order.total.toFixed(2)} TL`;
+    totalDiv.textContent = `${fmt(order.total)} TL`;
     noteDiv.value = order.note || "";
     noteDiv.disabled = false;
 
@@ -709,13 +768,13 @@ function renderOrderDetails(order) {
             <div class="order-item-row" data-item-id="${item.id}">
                 <span class="order-item-name">${item.product_name}${itemNote ? `<br><small style="color:#3b82f6;font-size:.68rem;">📝 ${itemNote}</small>` : ''}</span>
                 <span class="order-item-qty">${item.quantity}×</span>
-                <span class="order-item-price">${(item.quantity * item.unit_price).toFixed(2)} ₺</span>
+                <span class="order-item-price">${fmt(item.quantity * item.unit_price)} ₺</span>
                 <button class="order-item-del" data-edit-note="${item.id}" title="Not ekle">✏️</button>
                 <button class="order-item-del" onclick="removeItem(${order.id}, ${item.id})" title="Sil" style="color:#ef4444;">
                     <button class="btn btn-sm btn-danger" onclick="removeItem(${order.id}, ${item.id})">×</button>
                 </div>
                 <div class="col-12 text-muted small">
-                    ${item.quantity} × ${item.unit_price.toFixed(2)} = ${(item.quantity * item.unit_price).toFixed(2)} TL
+                    ${item.quantity} × ${fmt(item.unit_price)} = ${fmt(item.quantity * item.unit_price)} TL
 ×</button>
             </div>
         `;
@@ -780,16 +839,16 @@ function updateOrderTotal(order) {
     const totalDiscount = discountAmount + percentDiscount;
     const finalTotal = Math.max(0, subtotal - totalDiscount);
 
-    document.getElementById("orderSubtotal").textContent = `${subtotal.toFixed(2)} TL`;
+    document.getElementById("orderSubtotal").textContent = `${subtotalfmt()} TL`;
 
     if (totalDiscount > 0) {
         document.getElementById("discountDisplay").style.display = "";
-        document.getElementById("discountDisplayValue").textContent = `-${totalDiscount.toFixed(2)} TL`;
+        document.getElementById("discountDisplayValue").textContent = `-${totalDiscountfmt()} TL`;
     } else {
         document.getElementById("discountDisplay").style.display = "none";
     }
 
-    document.getElementById("orderTotal").textContent = `${finalTotal.toFixed(2)} TL`;
+    document.getElementById("orderTotal").textContent = `${finalTotalfmt()} TL`;
 }
 
 let noteUpdateTimeout;

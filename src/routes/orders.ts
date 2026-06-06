@@ -68,10 +68,11 @@ app.get('/:id/receipt', async (c) => {
   if (built.discount_percent) discountVal += subtotal * (built.discount_percent / 100)
   const total = Math.max(0, subtotal - discountVal)
 
+  const fmtTR = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const paymentMap: Record<string, string> = { nakit: '💵 Nakit', kredi_karti: '💳 Kredi Kartı', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: '-' }
   const paymentLabel = paymentMap[built.payment_method ?? 'pending'] ?? built.payment_method ?? '-'
-  const itemsHtml = built.items.map(i => `<div class="item"><span>${i.product_name} x${i.quantity}</span><span>${(i.quantity * i.unit_price).toFixed(2)} TL</span></div>`).join('')
-  const discountHtml = discountVal > 0 ? `<div class="item" style="color:#c00"><span>İndirim</span><span>-${discountVal.toFixed(2)} TL</span></div>` : ''
+  const itemsHtml = built.items.map(i => `<div class="item"><span>${i.product_name} x${i.quantity}</span><span>${fmtTR(i.quantity * i.unit_price)} ₺</span></div>`).join('')
+  const discountHtml = discountVal > 0 ? `<div class="item" style="color:#c00"><span>İndirim</span><span>-${fmtTR(discountVal)} ₺</span></div>` : ''
   const noteHtml = built.note ? `<p style="font-size:0.8em;color:#666;margin:4px 0">Not: ${built.note}</p>` : ''
   const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleString('tr-TR') : ''
 
@@ -100,7 +101,7 @@ ${restPhone ? `<p class="center" style="margin:1px 0;font-size:10px">Tel: ${rest
 ${itemsHtml}
 <hr>
 ${discountHtml}
-<div class="item total"><span>TOPLAM</span><span>${total.toFixed(2)} TL</span></div>
+<div class="item total"><span>TOPLAM</span><span>${fmtTR(total)} ₺</span></div>
 <hr>
 <div class="payment-box">ÖDEME: ${paymentLabel}</div>
 ${noteHtml}
