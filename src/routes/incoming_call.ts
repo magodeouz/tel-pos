@@ -51,12 +51,18 @@ app.post('/', async (c) => {
   // Store call in DB
   await db.insert(incomingCalls).values({ phone: trimmed })
 
+  // Get the inserted call ID so browser can dedup with polling
+  const [inserted] = await db.select({ id: incomingCalls.id })
+    .from(incomingCalls)
+    .orderBy(desc(incomingCalls.id))
+    .limit(1)
+
   // Broadcast via Durable Object WebSocket
   const hub = c.env.CALL_HUB.get(c.env.CALL_HUB.idFromName('main'))
   const customerData = await buildCustomerData(db, trimmed)
   await hub.fetch(new Request('https://hub/broadcast', {
     method: 'POST',
-    body: JSON.stringify({ type: 'incoming_call', phone: trimmed, customer: customerData }),
+    body: JSON.stringify({ type: 'incoming_call', id: inserted?.id, phone: trimmed, customer: customerData }),
     headers: { 'Content-Type': 'application/json' },
   }))
 

@@ -148,12 +148,15 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function queueIncomingCall(data) {
-    // Dedup WS calls (no id) by phone within 10 seconds
-    if (!data.id) {
-        const key = data.phone;
-        const lastSeen = _shownPhones.get(key) || 0;
+    // Dedup by DB id (reliable)
+    if (data.id) {
+        if (_shownCallIds.has(data.id)) return;
+        _shownCallIds.add(data.id);
+    } else {
+        // Fallback: dedup by phone within 10 seconds
+        const lastSeen = _shownPhones.get(data.phone) || 0;
         if (Date.now() - lastSeen < 10000) return;
-        _shownPhones.set(key, Date.now());
+        _shownPhones.set(data.phone, Date.now());
     }
     if (_modalOpen) {
         // Queue it — show after current modal closes
