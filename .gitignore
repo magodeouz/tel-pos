@@ -3,3 +3,6 @@
 .env
 node_modules/
 .gstack/
+.wrangler/
+.DS_Store
+**/.DS_Store
