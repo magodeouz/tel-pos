@@ -96,6 +96,9 @@ body {
   height: calc(100vh - var(--nav-h));
   overflow: hidden;
 }
+/* No order being edited → hide the right-hand order panel, center goes full width. */
+.pos-layout.no-order { grid-template-columns: 1fr; }
+.pos-layout.no-order .panel-right { display: none; }
 
 /* ── Panels ─────────────────────────────────────────────── */
 .panel {

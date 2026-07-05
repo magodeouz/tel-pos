@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>EFE POS</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/pos.css?v=202607051900">
+  <link rel="stylesheet" href="/css/pos.css?v=202607052200">
 </head>
 <body>
 
@@ -28,13 +28,14 @@
   </nav>
 
   <!-- Main layout -->
-  <div class="pos-layout">
+  <div class="pos-layout no-order">
 
     <!-- Center: Masalar / Gel Al / Paket  ↔  Product catalog (when an order is active) -->
     <div class="panel panel-center">
       <!-- Browse-mode header: top-level tabs -->
       <div class="panel-header" id="centerHeaderNav">
         <div class="center-tabs">
+          <button class="center-tab" data-center="acik" onclick="showCenterTab('acik')">📋 Açık Siparişler</button>
           <button class="center-tab active" data-center="masalar" onclick="showCenterTab('masalar')">🍽️ Masalar</button>
           <button class="center-tab" data-center="gelal" onclick="showCenterTab('gelal')">🛍️ Gel Al</button>
           <button class="center-tab" data-center="paket" onclick="showCenterTab('paket')">📦 Paket</button>
@@ -46,10 +47,14 @@
       </div>
       <!-- Products-mode header (shown only while an order is open) -->
       <div class="panel-header" id="centerHeaderProducts" style="display:none;">
-        <button class="back-to-floor" onclick="backToCenter()">✓ Bitir</button>
+        <button class="back-to-floor" onclick="backToCenter()">← Geri</button>
         <span class="panel-title" id="centerOrderCtx" style="flex:1;text-align:right;text-transform:none;letter-spacing:0;color:#1e293b;"></span>
       </div>
       <div class="panel-body" style="padding:0;display:flex;flex-direction:column;">
+        <!-- Açık siparişler (masa + gel al + paket, hepsi bir arada) -->
+        <div id="acikView" style="display:none;flex-direction:column;height:100%;overflow-y:auto;padding:8px;">
+          <div id="acikList"></div>
+        </div>
         <!-- Floor view -->
         <div id="floorView" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
           <div id="floorContainer" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
@@ -555,6 +560,6 @@
       window.location.href = '/';
     });
   </script>
-  <script src="/js/app.js?v=202607052000" defer></script>
+  <script src="/js/app.js?v=202607052200" defer></script>
 </body>
 </html>

@@ -584,24 +584,60 @@ function fmtElapsed(utc) {
 let _centerTab = 'masalar';
 
 function showProducts() {
-    ["floorView", "gelalView", "paketView"].forEach(id => document.getElementById(id).style.display = "none");
+    ["acikView", "floorView", "gelalView", "paketView"].forEach(id => document.getElementById(id).style.display = "none");
     document.getElementById("centerHeaderNav").style.display = "none";
     document.getElementById("productsView").style.display = "flex";
     document.getElementById("centerHeaderProducts").style.display = "flex";
+    // Editing an order → show the right-hand order panel.
+    document.querySelector(".pos-layout").classList.remove("no-order");
 }
 
-// Show one of the three browse tabs (and leave products mode).
+// Show one of the browse tabs (and leave products mode).
 function showCenterTab(tab) {
     _centerTab = tab;
     document.getElementById("productsView").style.display = "none";
     document.getElementById("centerHeaderProducts").style.display = "none";
     document.getElementById("centerHeaderNav").style.display = "flex";
+    // Browsing (no order selected) → hide the right-hand order panel.
+    document.querySelector(".pos-layout").classList.add("no-order");
     document.querySelectorAll(".center-tab").forEach(b => b.classList.toggle("active", b.dataset.center === tab));
+    document.getElementById("acikView").style.display = tab === 'acik' ? "flex" : "none";
     document.getElementById("floorView").style.display = tab === 'masalar' ? "flex" : "none";
     document.getElementById("gelalView").style.display = tab === 'gelal' ? "flex" : "none";
     document.getElementById("paketView").style.display = tab === 'paket' ? "flex" : "none";
     if (tab === 'masalar') loadFloor();
+    else if (tab === 'acik') loadAcikOrders();
     else loadOrders();
+}
+
+// "Açık Siparişler" tab: all open orders (salon + gel al + paket) in one list.
+async function loadAcikOrders() {
+    const open = await API.get("/api/orders?status=open");
+    renderAcikList(open);
+}
+function orderCtxLabel(o) {
+    if (o.order_type === 'salon')
+        return '🍽️ ' + (o.table_id && tableLabels[o.table_id] ? tableLabels[o.table_id] : 'Salon');
+    const nm = o.customer_id && customers[o.customer_id] ? ' · ' + customers[o.customer_id].name : '';
+    if (o.order_type === 'gelal') return '🛍️ Gel Al' + nm;
+    return '📦 Paket' + nm;
+}
+function renderAcikList(orders) {
+    const container = document.getElementById("acikList");
+    if (!orders.length) { container.innerHTML = '<div class="center-list-empty">Açık sipariş yok</div>'; return; }
+    container.innerHTML = orders.map(o => {
+        const isActive = currentOrderId === o.id;
+        return `
+        <div class="order-card ${isActive ? 'active' : ''}" onclick="selectOrder(${o.id})">
+            <div class="order-card-top">
+                <span class="order-card-id">#${o.id}</span>
+                <span class="order-card-total">${fmt(o.total)} ₺</span>
+                <button class="cancel-order-btn" onclick="cancelOrderFromList(${o.id}, event)" title="İptal">×</button>
+            </div>
+            <div class="order-card-customer">${orderCtxLabel(o)}</div>
+            <div class="order-card-items">${o.items.length} ürün</div>
+        </div>`;
+    }).join("");
 }
 
 // Back button from products → return to the last browse tab.
@@ -1523,6 +1559,7 @@ function startApp() {
         if (currentOrderId) return; // editing an order
         if (document.getElementById("productsView").style.display !== "none") return;
         if (_centerTab === 'masalar') loadFloor();
+        else if (_centerTab === 'acik') loadAcikOrders();
         else loadOrders();
     }, 30000);
 
