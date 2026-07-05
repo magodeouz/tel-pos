@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>EFE POS</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/pos.css?v=202606070230">
+  <link rel="stylesheet" href="/css/pos.css?v=202607051900">
 </head>
 <body>
 
@@ -19,6 +19,8 @@
     <div class="nav-spacer"></div>
     <span id="currentTime" class="time-display"></span>
     <span id="wsStatus" class="ws-dot" title="Bağlantı durumu"></span>
+    <button class="nav-btn" id="openCustomersModalBtn" title="Müşteriler">👥 Müşteriler</button>
+    <button class="nav-btn" id="openOrdersModalBtn" title="Bugünkü siparişler">🧾 Siparişler</button>
     <button class="nav-btn" onclick="window.open('/api/reports/day-close','_blank')" title="Gün kapanış raporu">📋 Kapanış</button>
     <button class="nav-btn" onclick="window.open('/management','_blank')">⚙ Yönetim</button>
     <span id="usernameDisplay" style="color:#94a3b8;font-size:.8rem;cursor:pointer;" onclick="openChangePassword()" title="Şifre değiştir 🔑"></span>
@@ -28,44 +30,45 @@
   <!-- Main layout -->
   <div class="pos-layout">
 
-    <!-- Left: Active orders + customers -->
-    <div class="panel panel-left">
-      <div class="panel-header">
-        <div class="tab-btns" style="flex:1">
-          <button class="tab-btn active" data-tab="orders" onclick="switchTab('orders')">Siparişler</button>
-          <button class="tab-btn" data-tab="customers" onclick="switchTab('customers')">Müşteriler</button>
-        </div>
-      </div>
-      <div class="panel-body" id="leftPanelBody">
-        <div class="tab-pane active" id="orders-panel">
-          <div id="ordersList"><p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:20px;">Yükleniyor...</p></div>
-        </div>
-        <div class="tab-pane" id="customers-panel">
-          <div style="padding:4px 0 4px;">
-            <input type="search" id="customerSearch" placeholder="🔍 İsim, telefon, adres..."
-              oninput="filterCustomers(this.value)"
-              style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;font-size:.78rem;outline:none;font-family:inherit;background:#fafafa;margin-bottom:5px;">
-            <button onclick="openNewCustomerModal()"
-              style="width:100%;background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:6px;font-size:.78rem;font-weight:600;cursor:pointer;">
-              + Yeni Müşteri Ekle
-            </button>
-          </div>
-          <div id="customersList"><p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:20px;">Yükleniyor...</p></div>
-        </div>
-      </div>
-      <div class="panel-footer">
-        <button class="new-order-btn" id="newOrderBtn">+ Yeni Sipariş</button>
-      </div>
-    </div>
-
-    <!-- Center: Product catalog -->
+    <!-- Center: Masalar / Gel Al / Paket  ↔  Product catalog (when an order is active) -->
     <div class="panel panel-center">
-      <div class="panel-header">
-        <span class="panel-title">Ürünler</span>
+      <!-- Browse-mode header: top-level tabs -->
+      <div class="panel-header" id="centerHeaderNav">
+        <div class="center-tabs">
+          <button class="center-tab active" data-center="masalar" onclick="showCenterTab('masalar')">🍽️ Masalar</button>
+          <button class="center-tab" data-center="gelal" onclick="showCenterTab('gelal')">🛍️ Gel Al</button>
+          <button class="center-tab" data-center="paket" onclick="showCenterTab('paket')">📦 Paket</button>
+        </div>
+        <div class="new-order-btns-top">
+          <button class="new-order-btn gelal" id="newGelAlBtn">🛍️ + Gel Al</button>
+          <button class="new-order-btn paket" id="newPaketBtn">📦 + Paket</button>
+        </div>
+      </div>
+      <!-- Products-mode header (shown only while an order is open) -->
+      <div class="panel-header" id="centerHeaderProducts" style="display:none;">
+        <button class="back-to-floor" onclick="backToCenter()">✓ Bitir</button>
+        <span class="panel-title" id="centerOrderCtx" style="flex:1;text-align:right;text-transform:none;letter-spacing:0;color:#1e293b;"></span>
       </div>
       <div class="panel-body" style="padding:0;display:flex;flex-direction:column;">
-        <div id="categoriesContainer" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
-          <p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:30px;padding:8px;">Yükleniyor...</p>
+        <!-- Floor view -->
+        <div id="floorView" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+          <div id="floorContainer" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+            <p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:30px;padding:8px;">Yükleniyor...</p>
+          </div>
+        </div>
+        <!-- Gel Al open orders -->
+        <div id="gelalView" style="display:none;flex-direction:column;height:100%;overflow-y:auto;padding:8px;">
+          <div id="gelalList"></div>
+        </div>
+        <!-- Paket open orders -->
+        <div id="paketView" style="display:none;flex-direction:column;height:100%;overflow-y:auto;padding:8px;">
+          <div id="paketList"></div>
+        </div>
+        <!-- Products view (hidden until an order is active) -->
+        <div id="productsView" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+          <div id="categoriesContainer" style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+            <p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:30px;padding:8px;">Yükleniyor...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -80,8 +83,13 @@
       <div class="panel-body" id="orderItems">
         <div class="empty-state">
           <span class="empty-icon">🛒</span>
-          <span>Sol panelden sipariş seçin<br>veya yeni sipariş açın</span>
+          <span>Masaya dokun veya<br>Paket / Gel-Al ile sipariş aç</span>
         </div>
+      </div>
+
+      <!-- Gir: siparişi kaydet ve listeye dön -->
+      <div class="order-enter-wrap">
+        <button type="button" class="order-enter-btn" id="enterOrderBtn" onclick="backToCenter()">✓ Gir</button>
       </div>
 
       <!-- Note -->
@@ -135,25 +143,81 @@
       </div>
     </div>
 
-    <!-- Bottom: All orders history -->
-    <div class="panel panel-bottom">
-      <div class="panel-header">
-        <span class="panel-title">Bugünkü Siparişler</span>
-        <nav id="paginationNav" style="display:none;">
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item"><a class="page-link" href="#" id="prevPageBtn">‹</a></li>
-            <li class="page-item"><span class="page-link" id="pageInfo" style="font-size:.75rem;">1</span></li>
-            <li class="page-item"><a class="page-link" href="#" id="nextPageBtn">›</a></li>
-          </ul>
-        </nav>
-      </div>
-      <div class="panel-body" style="padding:0;">
-        <div id="allOrdersList">
-          <p class="text-muted text-center" style="font-size:.8rem;padding:12px;">Yükleniyor...</p>
+  </div>
+
+  <!-- Customers popup -->
+  <div class="modal fade" id="customersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">👥 Müşteriler</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="customers-panel">
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <input type="search" id="customerSearch" placeholder="🔍 İsim, telefon, adres..."
+              oninput="filterCustomers(this.value)"
+              style="flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:.85rem;outline:none;font-family:inherit;background:#fafafa;">
+            <button onclick="openNewCustomerModal()"
+              style="background:#3b82f6;color:#fff;border:none;border-radius:7px;padding:8px 14px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+              + Yeni Müşteri
+            </button>
+          </div>
+          <div id="customersList"><p class="text-muted" style="font-size:.8rem;text-align:center;margin-top:20px;">Yükleniyor...</p></div>
         </div>
       </div>
     </div>
+  </div>
 
+  <!-- Table info popup (read-only, single-click on a table) -->
+  <div class="modal fade" id="tableInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tableInfoTitle">Masa</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="tableInfoBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's orders popup -->
+  <div class="modal fade" id="ordersModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header" style="flex-wrap:wrap;gap:8px;">
+          <h5 class="modal-title" style="flex:none;">🧾 Bugünkü Siparişler</h5>
+          <div class="order-filters" id="orderFilters">
+            <div class="filter-group" data-filter="type">
+              <button class="filter-chip active" data-value="">Tümü</button>
+              <button class="filter-chip" data-value="salon">🍽️ Salon</button>
+              <button class="filter-chip" data-value="gelal">🛍️ Gel Al</button>
+              <button class="filter-chip" data-value="paket">📦 Paket</button>
+            </div>
+            <span class="filter-sep"></span>
+            <div class="filter-group" data-filter="status">
+              <button class="filter-chip active" data-value="">Tümü</button>
+              <button class="filter-chip" data-value="open">Açık</button>
+              <button class="filter-chip" data-value="paid">Tamamlanmış</button>
+            </div>
+            <nav id="paginationNav" style="display:none;">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item"><a class="page-link" href="#" id="prevPageBtn">‹</a></li>
+                <li class="page-item"><span class="page-link" id="pageInfo" style="font-size:.75rem;">1</span></li>
+                <li class="page-item"><a class="page-link" href="#" id="nextPageBtn">›</a></li>
+              </ul>
+            </nav>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" style="padding:0;">
+          <div id="allOrdersList">
+            <p class="text-muted text-center" style="font-size:.8rem;padding:12px;">Yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Incoming Call Modal -->
@@ -442,6 +506,7 @@
           <div id="editCustError" style="color:#ef4444;font-size:.8rem;display:none;"></div>
         </div>
         <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto" id="deleteCustomerBtn">🗑 Sil</button>
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
           <button type="button" class="btn btn-primary" id="saveEditCustomerBtn">Kaydet</button>
         </div>
@@ -489,18 +554,7 @@
       localStorage.removeItem('username');
       window.location.href = '/';
     });
-
-    // Tab switching
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-      // Activate the matching tab button. Works whether called from the inline
-      // onclick or programmatically (e.g. after creating a new order), so it
-      // never relies on a global `event`.
-      document.querySelector('.tab-btn[data-tab="' + tab + '"]')?.classList.add('active');
-      document.getElementById(tab + '-panel')?.classList.add('active');
-    }
   </script>
-  <script src="/js/app.js?v=202606070230" defer></script>
+  <script src="/js/app.js?v=202607052000" defer></script>
 </body>
 </html>

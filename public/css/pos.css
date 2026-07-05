@@ -89,8 +89,8 @@ body {
 /* ── Layout ─────────────────────────────────────────────── */
 .pos-layout {
   display: grid;
-  grid-template-columns: 220px 1fr 340px;
-  grid-template-rows: 1fr 300px;
+  grid-template-columns: 1fr 340px;
+  grid-template-rows: minmax(0, 1fr);
   gap: 8px;
   padding: 8px;
   height: calc(100vh - var(--nav-h));
@@ -252,7 +252,7 @@ body {
 .customer-card-address { font-size: .72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Center: Products ───────────────────────────────────── */
-.panel-center { grid-row: 1; grid-column: 2; }
+.panel-center { grid-row: 1; grid-column: 1; }
 
 .category-section { margin-bottom: 12px; }
 
@@ -313,9 +313,143 @@ body {
   margin-top: 1px;
 }
 
+/* ── Floor plan (masa planı) ────────────────────────────── */
+.back-to-floor {
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #15803d;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .12s;
+}
+.back-to-floor:hover { background: #dcfce7; border-color: #22c55e; }
+
+/* Occupancy summary bar above the table grid */
+.floor-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+.floor-summary-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 12px;
+}
+.floor-summary-badge.busy { background: #dcfce7; color: #15803d; }
+.floor-summary-badge.free { background: #eef2f7; color: #64748b; }
+.floor-summary-total { margin-left: auto; font-size: .78rem; color: #475569; }
+.floor-summary-total strong { color: #0f172a; }
+
+/* Per-area open-table count chip on the area tabs */
+.cat-tab-count {
+  background: #22c55e;
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 800;
+  border-radius: 9px;
+  padding: 0 5px;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+
+.table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.table-tile {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 10px;
+  min-height: 96px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.table-tile:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59,130,246,.18);
+}
+.table-tile:active { transform: translateY(0); }
+.table-tile-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+/* Empty table: muted, dashed, a + hint */
+.table-tile:not(.occupied) {
+  border-style: dashed;
+  background: #fcfdfe;
+}
+.table-tile-state { font-size: .76rem; font-weight: 600; color: #94a3b8; }
+.table-tile:not(.occupied):hover .table-tile-state { color: var(--accent); }
+
+/* Occupied table: green, running total + detail */
+.table-tile.occupied {
+  background: #f0fdf4;
+  border-color: #22c55e;
+  box-shadow: inset 0 0 0 1px #bbf7d0;
+}
+.table-tile.occupied:hover { box-shadow: inset 0 0 0 1px #86efac, 0 4px 12px rgba(34,197,94,.2); }
+.table-tile-total { font-size: 1.05rem; font-weight: 800; color: #15803d; }
+.table-tile-meta { font-size: .68rem; font-weight: 600; color: #16a34a; opacity: .85; }
+
+/* ── Order filters (bottom panel) ───────────────────────── */
+.order-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filter-group { display: flex; gap: 3px; }
+.filter-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.filter-chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 14px;
+  padding: 3px 11px;
+  font-size: .72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+.filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── Center: top-level tabs (Masalar / Gel Al / Paket) ──── */
+.center-tabs { display: flex; gap: 4px; flex: 1; }
+.center-tab {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: #f1f5f9;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.center-tab:hover { background: #e2e8f0; color: var(--text); }
+.center-tab.active { background: var(--accent); color: #fff; }
+
 /* ── Right: Order detail ────────────────────────────────── */
-/* Right panel spans both rows — full screen height */
-.panel-right { grid-row: 1 / 3; grid-column: 3; }
+.panel-right { grid-row: 1; grid-column: 2; }
 
 .order-items-list { }
 
@@ -368,6 +502,28 @@ body {
 .empty-icon { font-size: 2rem; opacity: .4; }
 
 /* Note textarea */
+/* Gir: enter/save the current order and return to the list */
+.order-enter-wrap {
+  padding: 6px 8px 0;
+  flex-shrink: 0;
+}
+.order-enter-btn {
+  width: 100%;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 6px;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  background: #16a34a;
+  color: #fff;
+  opacity: .5;
+  pointer-events: none;
+}
+.order-enter-btn.enabled { opacity: 1; pointer-events: all; }
+.order-enter-btn.enabled:hover { background: #15803d; }
+
 .order-note-wrap {
   padding: 6px 8px;
   border-top: 1px solid var(--border);
@@ -550,6 +706,39 @@ body {
   letter-spacing: .2px;
 }
 .new-order-btn:hover { background: #16a34a; }
+
+/* Two side-by-side create buttons (Gel Al + Paket) */
+.new-order-btns { display: flex; gap: 6px; }
+.new-order-btns .new-order-btn { padding: 9px 6px; font-size: .82rem; }
+.new-order-btn.gelal { background: #0ea5e9; }
+.new-order-btn.gelal:hover { background: #0284c7; }
+
+/* Create-order buttons in the center header (moved from the old left panel) */
+.new-order-btns-top { display: flex; gap: 6px; flex-shrink: 0; }
+.new-order-btns-top .new-order-btn {
+  width: auto;
+  padding: 6px 11px;
+  font-size: .76rem;
+  border-radius: 7px;
+  white-space: nowrap;
+}
+.new-order-btn.paket { background: #f59e0b; }
+.new-order-btn.paket:hover { background: #d97706; }
+
+/* Open-order cards inside the Gel Al / Paket center tabs */
+#gelalList, #paketList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  align-content: start;
+}
+.center-list-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  font-size: .85rem;
+  padding: 40px 12px;
+}
 
 /* ── Modals ─────────────────────────────────────────────── */
 .modal-content { border-radius: 12px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,.2); }

@@ -29,6 +29,16 @@ let allOrdersPages = 1;
 let itemNotes = {};
 let isCreatingOrder = false; // prevents double-tap on any order creation
 
+// ── Floor plan (salon/masa) state ───────────────────────────────
+let floorData = [];          // [{area_id, area_name, tables:[{id,name,open_order}]}]
+let _activeFloorArea = null; // currently selected area tab
+let tableLabels = {};        // tableId -> "Bahçe · Masa 3" (for order titles/lists)
+let _currentOrder = null;    // last order rendered in the right panel (for empty-salon cleanup)
+
+// Bottom orders-list filters
+let _fltType = '';   // '' | 'salon' | 'paket'
+let _fltStatus = ''; // '' | 'open' | 'paid'
+
 function authHeaders(extra = {}) {
     const token = localStorage.getItem('access_token');
     return token
@@ -42,12 +52,7 @@ function logout() {
     window.location.href = '/';
 }
 
-function switchToOrdersTab() {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    document.querySelector('.tab-btn')?.classList.add('active');
-    document.getElementById('orders-panel')?.classList.add('active');
-}
+// switchToOrdersTab is defined later as a no-op (left panel no longer has tabs).
 
 // Cari customer picker
 let _cariOrderId = null;
@@ -83,13 +88,10 @@ async function selectCariCustomer(customerId) {
     // Link customer to order if not already linked, then set cari payment
     currentOrderId = null;
     resetOrderPanel();
-    switchToOrdersTab();
+    showCenterTab(_centerTab);
 
-    // Reserve the print tab during the click gesture, then persist payment,
-    // status and customer link BEFORE loading the receipt so it shows the
-    // payment method and customer info.
-    const win = window.open('', '_blank');
-
+    // Persist payment, status and customer link BEFORE printing so the
+    // receipt shows the payment method and customer info.
     await Promise.all([
         API.patch(`/api/orders/${orderId}/payment`, { payment_method: 'cari' }),
         API.patch(`/api/orders/${orderId}/status`, { status: 'paid' }),
@@ -100,10 +102,11 @@ async function selectCariCustomer(customerId) {
         }),
     ]);
 
-    printOrder(orderId, win);
+    printOrder(orderId);
 
     loadOrders();
     loadAllOrders(1);
+    loadFloor();
 }
 
 async function openCustomerDetail(customerId) {
@@ -241,6 +244,33 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const d = await res.json().catch(() => ({}));
             errEl.textContent = d.detail || 'Hata oluştu.';
+            errEl.style.display = 'block';
+        }
+    });
+
+    document.getElementById('deleteCustomerBtn')?.addEventListener('click', async () => {
+        if (!_editCustomerId) return;
+        const name = document.getElementById('editCustName').value.trim() || 'Bu müşteri';
+        // Fetch cari balance so we don't silently erase an unpaid debt record.
+        const detail = await API.get(`/api/customers/${_editCustomerId}/detail`).catch(() => null);
+        let msg = `"${name}" müşterisini silmek istediğinize emin misiniz?\nBu işlem geri alınamaz.`;
+        if (detail && detail.cari_balance > 0) {
+            msg = `⚠️ DİKKAT: "${name}" müşterisinin ${fmt(detail.cari_balance)} ₺ ödenmemiş cari borcu var!\n\nSilerseniz bu borç kaydı da silinecek. Yine de silmek istiyor musunuz?`;
+        }
+        if (!confirm(msg)) return;
+
+        const res = await fetch(`/api/customers/${_editCustomerId}`, {
+            method: 'DELETE', headers: authHeaders(),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('editCustomerModal'))?.hide();
+            _editCustomerId = null;
+            loadCustomers();
+            loadOrders();
+        } else {
+            const d = await res.json().catch(() => ({}));
+            const errEl = document.getElementById('editCustError');
+            errEl.textContent = d.detail || 'Silme sırasında hata oluştu.';
             errEl.style.display = 'block';
         }
     });
@@ -541,6 +571,201 @@ function handleIncomingCall(data) {
   }
 }
 
+// "5 dk", "1 sa 10 dk" — how long a table has been open
+function fmtElapsed(utc) {
+    if (!utc) return '';
+    const t = new Date(utc.replace(' ', 'T') + 'Z').getTime();
+    const m = Math.max(0, Math.floor((Date.now() - t) / 60000));
+    if (m < 60) return `${m} dk`;
+    return `${Math.floor(m / 60)} sa ${m % 60} dk`;
+}
+
+// ── Center panel: browse tabs (Masalar/Gel Al/Paket) ↔ products ──
+let _centerTab = 'masalar';
+
+function showProducts() {
+    ["floorView", "gelalView", "paketView"].forEach(id => document.getElementById(id).style.display = "none");
+    document.getElementById("centerHeaderNav").style.display = "none";
+    document.getElementById("productsView").style.display = "flex";
+    document.getElementById("centerHeaderProducts").style.display = "flex";
+}
+
+// Show one of the three browse tabs (and leave products mode).
+function showCenterTab(tab) {
+    _centerTab = tab;
+    document.getElementById("productsView").style.display = "none";
+    document.getElementById("centerHeaderProducts").style.display = "none";
+    document.getElementById("centerHeaderNav").style.display = "flex";
+    document.querySelectorAll(".center-tab").forEach(b => b.classList.toggle("active", b.dataset.center === tab));
+    document.getElementById("floorView").style.display = tab === 'masalar' ? "flex" : "none";
+    document.getElementById("gelalView").style.display = tab === 'gelal' ? "flex" : "none";
+    document.getElementById("paketView").style.display = tab === 'paket' ? "flex" : "none";
+    if (tab === 'masalar') loadFloor();
+    else loadOrders();
+}
+
+// Back button from products → return to the last browse tab.
+async function backToCenter() {
+    await discardEmptySalon();
+    showCenterTab(_centerTab);
+}
+
+// Kept for legacy callers (after pay/cancel): return to the floor tab.
+async function showFloor() {
+    await discardEmptySalon();
+    showCenterTab('masalar');
+}
+
+function switchToOrdersTab() { /* no-op: left panel no longer has order tabs */ }
+
+// Cancel the active order if it's an empty salon order (no items added).
+async function discardEmptySalon() {
+    if (_currentOrder && _currentOrder.order_type === 'salon'
+        && (_currentOrder.items?.length || 0) === 0
+        && currentOrderId === _currentOrder.id) {
+        const id = currentOrderId;
+        currentOrderId = null;
+        _currentOrder = null;
+        resetOrderPanel();
+        await API.patch(`/api/orders/${id}/status`, { status: 'cancelled' });
+        loadOrders();
+        loadAllOrders(allOrdersPage);
+    }
+}
+
+// ── Floor plan ──────────────────────────────────────────────────
+async function loadFloor() {
+    floorData = await API.get("/api/orders/floor");
+    tableLabels = {};
+    for (const a of floorData)
+        for (const t of (a.tables || [])) tableLabels[t.id] = `${a.area_name} · ${t.name}`;
+    renderFloor();
+}
+
+function renderFloor() {
+    const container = document.getElementById("floorContainer");
+    if (!floorData.length) {
+        container.innerHTML = '<div class="empty-state" style="height:100%;"><span class="empty-icon">🍽️</span><span>Henüz salon/masa yok<br>Yönetim → Salonlar\'dan ekleyin</span></div>';
+        return;
+    }
+    if (_activeFloorArea == null || !floorData.some(a => a.area_id === _activeFloorArea))
+        _activeFloorArea = floorData[0].area_id;
+
+    // Occupancy across ALL areas, shown as a glanceable summary bar.
+    let allTables = 0, busy = 0, grand = 0;
+    for (const a of floorData) for (const t of (a.tables || [])) {
+        allTables++;
+        if (t.open_order) { busy++; grand += t.open_order.total || 0; }
+    }
+    const summary = `<div class="floor-summary">
+        <span class="floor-summary-badge busy">${busy} dolu</span>
+        <span class="floor-summary-badge free">${allTables - busy} boş</span>
+        <span class="floor-summary-total">Açık toplam: <strong>${fmt(grand)} ₺</strong></span>
+    </div>`;
+
+    const tabBar = `<div class="cat-tabs" id="floorTabBar">${
+        floorData.map(a => {
+            const b = (a.tables || []).filter(t => t.open_order).length;
+            return `<button class="cat-tab ${a.area_id === _activeFloorArea ? 'active' : ''}" data-area="${a.area_id}">${a.area_name}${b ? ` <span class="cat-tab-count">${b}</span>` : ''}</button>`;
+        }).join('')
+    }</div>`;
+
+    const area = floorData.find(a => a.area_id === _activeFloorArea);
+    const tables = area.tables || [];
+    const grid = tables.length
+        ? `<div class="table-grid">${tables.map(t => {
+            const occ = t.open_order;
+            const nm = t.name.replace(/"/g, '&quot;');
+            const an = area.area_name.replace(/"/g, '&quot;');
+            if (occ) {
+                return `
+            <button class="table-tile occupied" data-table-id="${t.id}" data-table-name="${nm}" data-area-name="${an}">
+                <span class="table-tile-name">${t.name}</span>
+                <span class="table-tile-total">${fmt(occ.total)} ₺</span>
+                <span class="table-tile-meta">${occ.count} ürün${occ.opened_at ? ` · ${fmtElapsed(occ.opened_at)}` : ''}</span>
+            </button>`;
+            }
+            return `
+            <button class="table-tile" data-table-id="${t.id}" data-table-name="${nm}" data-area-name="${an}">
+                <span class="table-tile-name">${t.name}</span>
+                <span class="table-tile-state">＋ Boş</span>
+            </button>`;
+        }).join('')}</div>`
+        : '<p class="text-muted" style="font-size:.8rem;padding:12px;text-align:center;">Bu bölümde masa yok. Yönetim → Salonlar\'dan ekleyin.</p>';
+
+    container.innerHTML = summary + tabBar + `<div class="cat-panel active">${grid}</div>`;
+}
+
+// Tap a table: open its existing salon order, or start a new one.
+async function openTable(tableId, tableName, areaName) {
+    if (isCreatingOrder) return;
+    // Switching to a different table? Drop any empty salon order first.
+    if (_currentOrder && _currentOrder.table_id !== tableId) await discardEmptySalon();
+    const area = floorData.find(a => (a.tables || []).some(t => t.id === tableId));
+    const t = area && area.tables.find(x => x.id === tableId);
+
+    _centerTab = 'masalar'; // back button returns to the floor
+    if (t && t.open_order) {
+        currentOrderId = t.open_order.id;
+        const order = await API.get(`/api/orders/${currentOrderId}`);
+        renderOrderDetails(order);
+    } else {
+        isCreatingOrder = true;
+        try {
+            const order = await API.post("/api/orders", { order_type: 'salon', table_id: tableId });
+            currentOrderId = order.id;
+            renderOrderDetails(order);
+        } finally { isCreatingOrder = false; }
+    }
+    showProducts();
+    loadFloor();
+    loadAllOrders(allOrdersPage);
+}
+
+// Single-tap a table: show a read-only info screen (contents only, no actions).
+let _tableInfoModal = null;
+function getTableInfoModal() {
+    _tableInfoModal = _tableInfoModal || new bootstrap.Modal(document.getElementById("tableInfoModal"));
+    return _tableInfoModal;
+}
+async function showTableInfo(tableId) {
+    const label = tableLabels[tableId] || 'Masa';
+    const area = floorData.find(a => (a.tables || []).some(t => t.id === tableId));
+    const t = area && area.tables.find(x => x.id === tableId);
+    document.getElementById('tableInfoTitle').textContent = `🍽️ ${label}`;
+    const bodyEl = document.getElementById('tableInfoBody');
+
+    if (!t || !t.open_order) {
+        bodyEl.innerHTML = `<div class="empty-state" style="height:70px"><span class="empty-icon">🍽️</span><span>Bu masa boş</span></div>
+            <p class="text-muted" style="text-align:center;font-size:.76rem;margin:0;">Açmak için masaya çift tıklayın</p>`;
+        getTableInfoModal().show();
+        return;
+    }
+
+    bodyEl.innerHTML = '<p class="text-muted" style="text-align:center;font-size:.8rem;">Yükleniyor...</p>';
+    getTableInfoModal().show();
+
+    const order = await API.get(`/api/orders/${t.open_order.id}`);
+    const subtotal = order.items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+    let disc = order.discount_amount || 0;
+    if (order.discount_percent) disc += subtotal * order.discount_percent / 100;
+    const total = Math.max(0, subtotal - disc);
+
+    const itemsHtml = order.items.length
+        ? order.items.map(i => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:.86rem;">
+            <span>${i.product_name} <span style="color:#64748b;">×${i.quantity}</span></span>
+            <strong>${fmt(i.quantity * i.unit_price)} ₺</strong></div>`).join('')
+        : '<p class="text-muted" style="text-align:center;font-size:.8rem;">Ürün yok</p>';
+
+    bodyEl.innerHTML = `
+        <div style="font-size:.78rem;color:#64748b;margin-bottom:8px;">Sipariş #${order.id}${t.open_order.opened_at ? ` · ${fmtElapsed(t.open_order.opened_at)}` : ''}</div>
+        ${itemsHtml}
+        ${disc > 0 ? `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.82rem;color:#ef4444;"><span>İndirim</span><span>-${fmt(disc)} ₺</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:2px solid #0f172a;font-weight:800;font-size:1rem;"><span>TOPLAM</span><span>${fmt(total)} ₺</span></div>
+        ${order.note ? `<div style="margin-top:8px;font-size:.8rem;color:#64748b;">📝 ${order.note}</div>` : ''}
+        <p class="text-muted" style="text-align:center;font-size:.75rem;margin:12px 0 0;">İşlem yapmak için masaya çift tıklayın</p>`;
+}
+
 async function loadCategories() {
     categories = await API.get("/api/categories");
     renderCategories();
@@ -587,13 +812,16 @@ function renderCategories() {
 }
 
 async function loadOrders() {
-    const [allCustomers, orders] = await Promise.all([
+    // Center tabs list open Gel Al + Paket orders by type; salon opens live on the floor.
+    const [allCustomers, gelal, paket] = await Promise.all([
         API.get("/api/customers"),
-        API.get("/api/orders?status=open"),
+        API.get("/api/orders?status=open&type=gelal"),
+        API.get("/api/orders?status=open&type=paket"),
     ]);
     customers = {};
     allCustomers.forEach(c => customers[c.id] = c);
-    renderOrders(orders);
+    renderOpenList("gelalList", gelal, "Açık gel al siparişi yok");
+    renderOpenList("paketList", paket, "Açık paket siparişi yok");
 }
 
 let allCustomersList = [];
@@ -642,20 +870,25 @@ function renderCustomers(customers) {
 
 async function createOrderForCustomer(customerId, customerName) {
     if (isCreatingOrder) return;
+    // Close the customers popup if it was opened from there.
+    bootstrap.Modal.getInstance(document.getElementById("customersModal"))?.hide();
+    await discardEmptySalon();
     isCreatingOrder = true;
     try {
-    const order = await API.post("/api/orders", { customer_id: customerId });
+    const order = await API.post("/api/orders", { customer_id: customerId, order_type: 'paket' });
     currentOrderId = order.id;
+    _centerTab = 'paket';
     renderOrderDetails(order);
     loadOrders();
     } finally { isCreatingOrder = false; }
-    switchToOrdersTab();
+    showProducts();
 }
 
-function renderOrders(orders) {
-    const container = document.getElementById("ordersList");
+function renderOpenList(containerId, orders, emptyText) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
     if (orders.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="height:80px;"><span class="empty-icon">📋</span><span>Açık sipariş yok</span></div>';
+        container.innerHTML = `<div class="center-list-empty">${emptyText}</div>`;
         return;
     }
 
@@ -678,7 +911,10 @@ function renderOrders(orders) {
 }
 
 async function loadAllOrders(page = 1) {
-    const data = await API.get(`/api/orders/list/paginated?page=${page}&per_page=10`);
+    const params = new URLSearchParams({ page: String(page), per_page: "10" });
+    if (_fltType) params.set("type", _fltType);
+    if (_fltStatus) params.set("status", _fltStatus);
+    const data = await API.get(`/api/orders/list/paginated?${params.toString()}`);
     allOrdersPage = data.page;
     allOrdersPages = data.pages;
     renderAllOrders(data.orders);
@@ -699,13 +935,14 @@ function renderAllOrders(orders) {
         <table class="orders-table">
             <thead>
                 <tr>
-                    <th style="width:8%">#</th>
-                    <th style="width:18%">Müşteri</th>
-                    <th style="width:16%">Telefon</th>
-                    <th style="width:16%">Tarih</th>
-                    <th style="width:8%">Ürün</th>
-                    <th style="width:14%">Toplam</th>
-                    <th style="width:20%">Durum</th>
+                    <th style="width:7%">#</th>
+                    <th style="width:17%">Tür</th>
+                    <th style="width:15%">Müşteri</th>
+                    <th style="width:13%">Telefon</th>
+                    <th style="width:15%">Tarih</th>
+                    <th style="width:6%">Ürün</th>
+                    <th style="width:12%">Toplam</th>
+                    <th style="width:15%">Durum</th>
                 </tr>
             </thead>
             <tbody>
@@ -713,9 +950,13 @@ function renderAllOrders(orders) {
                     const cust = order.customer_id ? customers[order.customer_id] : null;
                     const customerName = cust ? cust.name : "—";
                     const customerPhone = cust && cust.phone ? cust.phone : "—";
+                    const typeLabel = order.order_type === 'salon'
+                        ? `🍽️ ${order.table_id && tableLabels[order.table_id] ? tableLabels[order.table_id] : 'Salon'}`
+                        : order.order_type === 'gelal' ? '🛍️ Gel Al' : '📦 Paket';
                     return `
                     <tr style="cursor: pointer;" data-order-detail-id="${order.id}">
                         <td><strong>#${order.id}</strong></td>
+                        <td><small>${typeLabel}</small></td>
                         <td>${customerName}</td>
                         <td>${customerPhone}</td>
                         <td><small>${fmtDateTime(order.created_at)}</small></td>
@@ -829,6 +1070,7 @@ function openDetailPaymentChange() {
 
 async function updateDetailPayment(method) {
     if (!_detailOrderId) return;
+    if ((method === 'cari' || method === 'odenmes') && !requirePin()) return;
     await API.patch(`/api/orders/${_detailOrderId}/payment`, { payment_method: method });
     document.getElementById("detailPaymentChangeWrap").style.display = 'none';
     // Refresh
@@ -850,13 +1092,16 @@ function updateAllOrdersPagination() {
 }
 
 async function selectOrder(orderId) {
+    if (_currentOrder && _currentOrder.id !== orderId) await discardEmptySalon();
     currentOrderId = orderId;
     const order = await API.get(`/api/orders/${orderId}`);
     renderOrderDetails(order);
+    showProducts();
 }
 
 function resetOrderPanel() {
-    document.getElementById("orderItems").innerHTML = '<div class="empty-state"><span class="empty-icon">🛒</span><span>Sol panelden sipariş seçin<br>veya yeni sipariş açın</span></div>';
+    _currentOrder = null;
+    document.getElementById("orderItems").innerHTML = '<div class="empty-state"><span class="empty-icon">🛒</span><span>Masaya dokun veya<br>Paket / Gel-Al ile sipariş aç</span></div>';
     document.getElementById("orderTitle").textContent = "Sipariş Seçin";
     document.getElementById("orderTotal").textContent = "0.00";
     document.getElementById("orderSubtotal").textContent = "0.00";
@@ -868,9 +1113,11 @@ function resetOrderPanel() {
     document.querySelectorAll(".payment-btn").forEach(b => b.classList.remove("enabled"));
     document.getElementById("printBtn").classList.remove("enabled");
     document.getElementById("cancelBtn").classList.remove("enabled");
+    document.getElementById("enterOrderBtn").classList.remove("enabled");
 }
 
 function renderOrderDetails(order) {
+    _currentOrder = order;
     const itemsDiv = document.getElementById("orderItems");
     const titleDiv = document.getElementById("orderTitle");
     const totalDiv = document.getElementById("orderTotal");
@@ -878,9 +1125,20 @@ function renderOrderDetails(order) {
 
     const customerName = order.customer_id && customers[order.customer_id]
         ? customers[order.customer_id].name
-        : "Müşteri Yok";
+        : null;
 
-    titleDiv.textContent = `Sipariş #${order.id} - ${customerName}`;
+    // Context label: salon shows the table, paket shows the customer (if any).
+    let ctx;
+    if (order.order_type === 'salon') {
+        ctx = '🍽️ ' + (order.table_id && tableLabels[order.table_id] ? tableLabels[order.table_id] : 'Salon');
+    } else if (order.order_type === 'gelal') {
+        ctx = '🛍️ Gel Al' + (customerName ? ' · ' + customerName : '');
+    } else {
+        ctx = '📦 Paket' + (customerName ? ' · ' + customerName : '');
+    }
+    titleDiv.textContent = `#${order.id} · ${ctx}`;
+    const ctxEl = document.getElementById("centerOrderCtx");
+    if (ctxEl) ctxEl.textContent = ctx;
     totalDiv.textContent = `${fmt(order.total)} TL`;
     noteDiv.value = order.note || "";
     noteDiv.disabled = false;
@@ -924,6 +1182,7 @@ function renderOrderDetails(order) {
 
     document.getElementById("printBtn").classList.toggle("enabled", hasItems);
     document.getElementById("cancelBtn").classList.add("enabled");
+    document.getElementById("enterOrderBtn").classList.add("enabled");
 }
 
 async function addProductToOrder(productId) {
@@ -941,23 +1200,43 @@ async function addProductToOrder(productId) {
     renderOrderDetails(order);
     loadOrders();
     loadAllOrders(allOrdersPage);
+    loadFloor();
+}
+
+// Manager PIN gate for sensitive actions (item delete, cari/ödenmez settle).
+const MANAGER_PIN = "4444";
+function requirePin() {
+    const pin = prompt("Yönetici parolası:");
+    if (pin === null) return false;          // cancelled
+    if (pin === MANAGER_PIN) return true;
+    alert("Hatalı parola");
+    return false;
 }
 
 async function removeItem(orderId, itemId) {
+    if (!requirePin()) return;
     await API.delete(`/api/orders/${orderId}/items/${itemId}`);
     const order = await API.get(`/api/orders/${orderId}`);
     renderOrderDetails(order);
     loadOrders();
     loadAllOrders(allOrdersPage);
+    loadFloor();
 }
 
-function printOrder(orderId, win) {
+function printOrder(orderId) {
+    // Print via a hidden iframe so no visible browser tab/page opens — the
+    // system print dialog appears directly over the POS. The receipt page
+    // auto-calls window.print() on load, which prints just the iframe's
+    // contents (the receipt).
     const url = `/api/orders/${orderId}/receipt`;
-    // If a window was pre-opened during the click gesture, point it at the
-    // receipt now (lets us save the payment method first without the popup
-    // being blocked). Otherwise open a fresh tab.
-    if (win && !win.closed) win.location.href = url;
-    else window.open(url, '_blank');
+    document.getElementById('receiptPrintFrame')?.remove();
+
+    const frame = document.createElement('iframe');
+    frame.id = 'receiptPrintFrame';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;border:0;';
+    frame.src = url;
+    document.body.appendChild(frame);
     return true;
 }
 
@@ -1015,13 +1294,12 @@ async function cancelOrderFromList(orderId, event) {
     if (confirm("Bu siparişi iptal etmek istediğinizden emin misiniz?")) {
         await API.patch(`/api/orders/${orderId}/status`, { status: "cancelled" });
         loadOrders();
+        loadFloor();
+        loadAllOrders(allOrdersPage);
         if (currentOrderId === orderId) {
             currentOrderId = null;
-            document.getElementById("orderItems").innerHTML = '<p class="text-muted">Lütfen sipariş seçin</p>';
-            document.getElementById("orderTitle").textContent = "Sipariş Seçin";
-            document.getElementById("orderTotal").textContent = "0.00 TL";
-            document.getElementById("orderNote").value = "";
-            document.getElementById("orderNote").disabled = true;
+            resetOrderPanel();
+            showCenterTab(_centerTab);
         }
     }
 }
@@ -1029,6 +1307,7 @@ async function cancelOrderFromList(orderId, event) {
 async function markOrderAsPaid(orderId) {
     await API.patch(`/api/orders/${orderId}/status`, { status: "paid" });
     loadAllOrders(allOrdersPage);
+    loadFloor();
 }
 
 function checkPrinterStatus() {
@@ -1036,24 +1315,48 @@ function checkPrinterStatus() {
 }
 
 // Event listeners
-document.getElementById("newOrderBtn").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
+// Create a Gel Al / Paket order from the left footer buttons → jump to products.
+async function createTypedOrder(orderType, btn) {
     if (btn.disabled) return;
+    const orig = btn.textContent;
     btn.disabled = true;
-    btn.textContent = "Oluşturuluyor...";
+    btn.textContent = "...";
     try {
-        const order = await API.post("/api/orders", { customer_id: null });
+        await discardEmptySalon();
+        const order = await API.post("/api/orders", { customer_id: null, order_type: orderType });
         currentOrderId = order.id;
+        _centerTab = orderType; // back button returns to this order's tab
         renderOrderDetails(order);
-        // Switch the left panel to the Orders tab so the new order is visible,
-        // then refresh both lists.
-        if (typeof switchTab === 'function') switchTab('orders');
+        showProducts();
         await loadOrders();
-        loadAllOrders(1);
+        loadAllOrders(allOrdersPage);
     } finally {
         btn.disabled = false;
-        btn.textContent = "+ Yeni Sipariş";
+        btn.textContent = orig;
     }
+}
+
+document.getElementById("newGelAlBtn").addEventListener("click", (e) => createTypedOrder('gelal', e.currentTarget));
+document.getElementById("newPaketBtn").addEventListener("click", (e) => createTypedOrder('paket', e.currentTarget));
+
+// Customers popup
+let _customersModal = null;
+function getCustomersModal() {
+    _customersModal = _customersModal || new bootstrap.Modal(document.getElementById("customersModal"));
+    return _customersModal;
+}
+document.getElementById("openCustomersModalBtn").addEventListener("click", () => {
+    document.getElementById("customerSearch").value = '';
+    loadCustomers();
+    getCustomersModal().show();
+});
+
+// Today's orders popup
+let _ordersModal = null;
+document.getElementById("openOrdersModalBtn").addEventListener("click", () => {
+    _ordersModal = _ordersModal || new bootstrap.Modal(document.getElementById("ordersModal"));
+    loadAllOrders(1);
+    _ordersModal.show();
 });
 
 document.getElementById("printBtn").addEventListener("click", async () => {
@@ -1069,6 +1372,7 @@ document.getElementById("cancelBtn").addEventListener("click", async () => {
         const orderId = currentOrderId;
         currentOrderId = null;
         resetOrderPanel();
+        showCenterTab(_centerTab);
         await API.patch(`/api/orders/${orderId}/status`, { status: "cancelled" });
         loadOrders();
         loadAllOrders(1);
@@ -1098,10 +1402,13 @@ document.getElementById("createOrderFromCallBtn").addEventListener("click", asyn
             return;
         }
 
-        const order = await API.post("/api/orders", { customer_id: customerId });
+        await discardEmptySalon();
+        const order = await API.post("/api/orders", { customer_id: customerId, order_type: 'paket' });
         currentOrderId = order.id;
+        _centerTab = 'paket';
         renderOrderDetails(order);
         loadOrders();
+        showProducts();
 
         bootstrap.Modal.getInstance(document.getElementById("incomingCallModal")).hide();
     }
@@ -1190,10 +1497,12 @@ document.getElementById("saveCustomerBtn").addEventListener("click", async () =>
     // If coming from incoming call, create order
     if (window.createOrderAfterCustomer) {
         window.createOrderAfterCustomer = false;
-        const order = await API.post("/api/orders", { customer_id: customerData.id });
+        const order = await API.post("/api/orders", { customer_id: customerData.id, order_type: 'paket' });
         currentOrderId = order.id;
+        _centerTab = 'paket';
         renderOrderDetails(order);
         loadOrders();
+        showProducts();
     }
 });
 
@@ -1206,12 +1515,57 @@ function startApp() {
     loadOrders();
     loadCustomers();
     loadAllOrders(1);
+    loadFloor();
     checkPrinterStatus();
+
+    // Keep the active browse tab fresh (open totals, elapsed time) while idle.
+    setInterval(() => {
+        if (currentOrderId) return; // editing an order
+        if (document.getElementById("productsView").style.display !== "none") return;
+        if (_centerTab === 'masalar') loadFloor();
+        else loadOrders();
+    }, 30000);
 
     // Product button clicks via event delegation
     document.getElementById("categoriesContainer").addEventListener("click", (e) => {
         const btn = e.target.closest("[data-product-id]");
         if (btn) addProductToOrder(Number(btn.dataset.productId));
+    });
+
+    // Floor plan: area-tab + table-tile clicks via event delegation.
+    // Single-click a table → read-only info screen. Double-click → open it.
+    let _tableClickTimer = null;
+    const floorEl = document.getElementById("floorContainer");
+    floorEl.addEventListener("click", (e) => {
+        const tab = e.target.closest("[data-area]");
+        if (tab) { _activeFloorArea = Number(tab.dataset.area); renderFloor(); return; }
+        const tile = e.target.closest("[data-table-id]");
+        if (!tile) return;
+        // Second click of a double-click: cancel the pending single-click.
+        if (_tableClickTimer) { clearTimeout(_tableClickTimer); _tableClickTimer = null; return; }
+        const id = Number(tile.dataset.tableId);
+        _tableClickTimer = setTimeout(() => {
+            _tableClickTimer = null;
+            showTableInfo(id);
+        }, 250);
+    });
+    floorEl.addEventListener("dblclick", (e) => {
+        const tile = e.target.closest("[data-table-id]");
+        if (!tile) return;
+        if (_tableClickTimer) { clearTimeout(_tableClickTimer); _tableClickTimer = null; }
+        openTable(Number(tile.dataset.tableId), tile.dataset.tableName, tile.dataset.areaName);
+    });
+
+    // Bottom orders-list filter chips (type + status)
+    document.getElementById("orderFilters").addEventListener("click", (e) => {
+        const chip = e.target.closest(".filter-chip");
+        if (!chip) return;
+        const group = chip.closest(".filter-group");
+        group.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        if (group.dataset.filter === "type") _fltType = chip.dataset.value;
+        else _fltStatus = chip.dataset.value;
+        loadAllOrders(1);
     });
 
     // Item note edit via event delegation
@@ -1277,6 +1631,9 @@ function startApp() {
             if (!currentOrderId) return;
             const paymentMethod = btn.dataset.method;
 
+            // Cari / Ödenmez require a manager PIN before settling.
+            if ((paymentMethod === 'cari' || paymentMethod === 'odenmes') && !requirePin()) return;
+
             // Cari: require customer selection first
             if (paymentMethod === 'cari') {
                 openCariCustomerPicker(currentOrderId);
@@ -1288,22 +1645,20 @@ function startApp() {
             // Clear UI immediately — don't wait for server
             currentOrderId = null;
             resetOrderPanel();
-            switchToOrdersTab();
+            showCenterTab(_centerTab);
 
-            // Reserve the print tab now (during the click gesture) so the
-            // popup blocker lets it through, then save the payment method
-            // BEFORE loading the receipt so it shows the correct payment.
-            const win = window.open('', '_blank');
-
+            // Save the payment method BEFORE printing so the receipt shows
+            // the correct payment.
             await Promise.all([
                 API.patch(`/api/orders/${orderId}/payment`, { payment_method: paymentMethod }),
                 API.patch(`/api/orders/${orderId}/status`, { status: "paid" }),
             ]);
 
-            printOrder(orderId, win);
+            printOrder(orderId);
 
             loadOrders();
             loadAllOrders(1);
+            loadFloor();
         });
     });
 }
