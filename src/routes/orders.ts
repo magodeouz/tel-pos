@@ -169,7 +169,7 @@ app.get('/:id/receipt', async (c) => {
 <html lang="tr"><head><meta charset="utf-8"><title>Sipariş #${order.id}</title>
 <style>@page{size:58mm auto;margin:0;}
 @media print{body{margin:0;}.no-print{display:none;}}
-body{font-family:monospace;width:48mm;max-width:48mm;margin:0;padding:2mm 1mm;font-size:11px;line-height:1.25;word-break:break-word;}
+body{font-family:monospace;width:44mm;max-width:44mm;margin:0;padding:2mm 0.5mm;font-size:11px;line-height:1.25;word-break:break-word;}
 h2{text-align:center;margin:0 0 2px;font-size:13px;}
 .center{text-align:center;}
 hr{border:none;border-top:1px dashed #000;margin:5px 0;}

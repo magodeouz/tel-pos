@@ -22,5 +22,5 @@ new_sqlite_classes = ["CallHub"]
 
 [vars]
 RESTAURANT_NAME = "EFE BÜFE"
-RESTAURANT_ADDRESS = "Atatürk Mah. Cumhuriyet Cad. No:1"
-RESTAURANT_PHONE = "0212 000 00 00"
+RESTAURANT_ADDRESS = "Atatürk Cad. 95/2, Manavgat/Antalya"
+RESTAURANT_PHONE = "0553 333 2833"
