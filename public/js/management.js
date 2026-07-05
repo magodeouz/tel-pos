@@ -474,6 +474,91 @@ function renderCustomerSpendingAnalysis(data) {
     }).join("");
 }
 
+// ============= ALL ORDERS REPORT =============
+
+let _ordersReportPage = 1;
+let _ordersReportPages = 1;
+let _ordersCustomers = null;   // id -> customer
+let _ordersTableLabels = null; // tableId -> "Bahçe · Masa 3"
+
+async function ensureOrdersMaps() {
+    if (_ordersCustomers && _ordersTableLabels) return;
+    const [custs, areas] = await Promise.all([API.get("/api/customers"), API.get("/api/areas")]);
+    _ordersCustomers = {};
+    custs.forEach(c => _ordersCustomers[c.id] = c);
+    _ordersTableLabels = {};
+    areas.forEach(a => (a.tables || []).forEach(t => _ordersTableLabels[t.id] = `${a.name} · ${t.name}`));
+}
+
+// DB stores UTC; render as Istanbul.
+function fmtOrderDateTime(utc) {
+    if (!utc) return '';
+    return new Date(utc.replace(' ', 'T') + 'Z').toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+}
+
+function orderTypeLabel(o) {
+    if (o.order_type === 'salon') return '🍽️ ' + (o.table_id && _ordersTableLabels[o.table_id] ? _ordersTableLabels[o.table_id] : 'Salon');
+    if (o.order_type === 'gelal') return '🛍️ Gel Al';
+    return '📦 Paket';
+}
+
+function orderPaymentLabel(m) {
+    const map = { nakit: '💵 Nakit', kredi_karti: '💳 Kart', cari: '📋 Cari', odenmes: '🚫 Ödenmez', pending: '—' };
+    return map[m] || '—';
+}
+
+function orderStatusBadge(o) {
+    const base = 'padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:700;';
+    if (o.status === 'cancelled') return `<span style="${base}background:#f1f5f9;color:#64748b;">İptal</span>`;
+    if (o.status === 'paid') return `<span style="${base}background:#dcfce7;color:#15803d;">Tamamlandı</span>`;
+    return `<span style="${base}background:#dbeafe;color:#1d4ed8;">Açık</span>`;
+}
+
+let _ordersFilterType = '';    // '' | 'salon' | 'gelal' | 'paket'
+let _ordersFilterStatus = '';  // '' | 'open' | 'paid' | 'cancelled'
+
+async function loadOrdersReport(page = 1) {
+    await ensureOrdersMaps();
+    const params = new URLSearchParams({ all: '1', page: String(page), per_page: '20' });
+    if (_ordersFilterType) params.set('type', _ordersFilterType);
+    if (_ordersFilterStatus) params.set('status', _ordersFilterStatus);
+    const data = await API.get(`/api/orders/list/paginated?${params.toString()}`);
+    _ordersReportPage = data.page;
+    _ordersReportPages = data.pages;
+
+    const body = document.getElementById("ordersReportBody");
+    if (!data.orders.length) {
+        body.innerHTML = '<tr><td colspan="8" class="mgmt-empty">Sipariş yok</td></tr>';
+    } else {
+        // Endpoint already orders newest-first (created_at DESC).
+        body.innerHTML = data.orders.map(o => {
+            const cust = o.customer_id && _ordersCustomers[o.customer_id] ? _ordersCustomers[o.customer_id] : null;
+            return `<tr>
+                <td><strong>#${o.id}</strong></td>
+                <td><small>${fmtOrderDateTime(o.created_at)}</small></td>
+                <td>${orderTypeLabel(o)}</td>
+                <td>${cust ? cust.name : '—'}</td>
+                <td>${o.items.length}</td>
+                <td><strong>${fmtTL(o.total)} ₺</strong></td>
+                <td>${orderPaymentLabel(o.payment_method)}</td>
+                <td>${orderStatusBadge(o)}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    document.getElementById("ordersPageInfo").textContent = `${data.page} / ${data.pages}`;
+    document.getElementById("ordersReportInfo").textContent = `Toplam ${data.total} sipariş`;
+    document.getElementById("ordersPrevBtn").disabled = data.page <= 1;
+    document.getElementById("ordersNextBtn").disabled = data.page >= data.pages;
+}
+
+document.getElementById("ordersPrevBtn")?.addEventListener("click", () => {
+    if (_ordersReportPage > 1) loadOrdersReport(_ordersReportPage - 1);
+});
+document.getElementById("ordersNextBtn")?.addEventListener("click", () => {
+    if (_ordersReportPage < _ordersReportPages) loadOrdersReport(_ordersReportPage + 1);
+});
+
 // ============= UTILITY FUNCTIONS =============
 
 function formatDate(dateString) {
@@ -564,6 +649,140 @@ document.getElementById("categoryForm")?.addEventListener("submit", async (e) =>
     }
 });
 
+// ============= SALONLAR: AREAS + TABLES =============
+
+let areas = [];
+let selectedAreaId = null;
+
+async function loadAreas() {
+    try {
+        areas = await API.get("/api/areas");
+        if (selectedAreaId == null || !areas.some(a => a.id === selectedAreaId))
+            selectedAreaId = areas.length ? areas[0].id : null;
+        renderAreaList();
+        renderTableList();
+    } catch (e) {
+        document.getElementById("areaList").innerHTML = `<p class="mgmt-empty">Yüklenemedi: ${e.message}</p>`;
+    }
+}
+
+function renderAreaList() {
+    const el = document.getElementById("areaList");
+    if (!el) return;
+    const rows = areas.map(a => `
+        <div class="cat-item ${selectedAreaId === a.id ? 'active' : ''}" data-area-id="${a.id}" onclick="selectArea(${a.id})">
+            <span class="cat-drag" title="Sürükleyerek sırala">⠿</span>
+            <span class="cat-name">${a.name}</span>
+            <span class="cat-count">${(a.tables || []).length}</span>
+            <span class="cat-actions">
+                <button class="icon-btn" title="Düzenle"
+                    onclick="event.stopPropagation(); editArea(${a.id}, '${a.name.replace(/'/g, "\\'")}', ${a.sort_order || 0})">✏️</button>
+                <button class="icon-btn" title="Sil"
+                    onclick="event.stopPropagation(); deleteArea(${a.id})">🗑</button>
+            </span>
+        </div>`).join("");
+    el.innerHTML = rows
+        ? `<div id="areaSortable" class="cat-sortable">${rows}</div>`
+        : '<p class="mgmt-empty">Henüz salon bölümü yok</p>';
+    makeSortable(document.getElementById("areaSortable"), ".cat-item", persistAreaOrder);
+}
+
+function selectArea(id) {
+    selectedAreaId = id;
+    renderAreaList();
+    renderTableList();
+}
+
+function renderTableList() {
+    const el = document.getElementById("tableList");
+    if (!el) return;
+    const area = areas.find(a => a.id === selectedAreaId);
+    const titleEl = document.getElementById("tablesTitle");
+    if (titleEl) titleEl.textContent = area ? `Masalar — ${area.name}` : "Masalar";
+
+    if (!area) { el.innerHTML = '<p class="mgmt-empty">Önce bir salon bölümü seçin</p>'; return; }
+    const rows = (area.tables || []).map(t => `
+        <div class="cat-item" data-table-id="${t.id}">
+            <span class="cat-drag" title="Sürükleyerek sırala">⠿</span>
+            <span class="cat-name">${t.name}</span>
+            <span class="cat-actions">
+                <button class="icon-btn" title="Düzenle"
+                    onclick="event.stopPropagation(); editTable(${t.id}, '${t.name.replace(/'/g, "\\'")}')">✏️</button>
+                <button class="icon-btn" title="Sil"
+                    onclick="event.stopPropagation(); deleteTable(${t.id})">🗑</button>
+            </span>
+        </div>`).join("");
+    el.innerHTML = rows
+        ? `<div id="tableSortable" class="cat-sortable">${rows}</div>`
+        : '<p class="mgmt-empty">Bu bölümde masa yok</p>';
+    makeSortable(document.getElementById("tableSortable"), ".cat-item", persistTableOrder);
+}
+
+async function persistAreaOrder() {
+    const ids = [...document.querySelectorAll("#areaSortable .cat-item")].map(el => Number(el.dataset.areaId));
+    try { await API.post("/api/areas/reorder", { ids }); await loadAreas(); }
+    catch (e) { alert("Bölüm sırası kaydedilemedi: " + e.message); }
+}
+
+async function persistTableOrder() {
+    const ids = [...document.querySelectorAll("#tableSortable .cat-item")].map(el => Number(el.dataset.tableId));
+    try { await API.post("/api/areas/tables/reorder", { ids }); await loadAreas(); }
+    catch (e) { alert("Masa sırası kaydedilemedi: " + e.message); }
+}
+
+async function editArea(id, name) {
+    const newName = prompt("Bölüm adını düzenleyin:", name);
+    if (newName === null || !newName.trim()) return;
+    try { await API.put(`/api/areas/${id}`, { name: newName.trim() }); await loadAreas(); }
+    catch (e) { alert("Bölüm düzenlenemedi: " + e.message); }
+}
+
+async function deleteArea(id) {
+    if (!confirm("Bu salon bölümünü ve içindeki tüm masaları silmek istediğinizden emin misiniz?")) return;
+    try {
+        await API.delete(`/api/areas/${id}`);
+        if (selectedAreaId === id) selectedAreaId = null;
+        await loadAreas();
+    } catch (e) { alert("Bölüm silinemedi: " + e.message); }
+}
+
+async function editTable(id, name) {
+    const newName = prompt("Masa adını düzenleyin:", name);
+    if (newName === null || !newName.trim()) return;
+    try { await API.put(`/api/areas/tables/${id}`, { name: newName.trim() }); await loadAreas(); }
+    catch (e) { alert("Masa düzenlenemedi: " + e.message); }
+}
+
+async function deleteTable(id) {
+    if (!confirm("Bu masayı silmek istediğinizden emin misiniz?")) return;
+    try { await API.delete(`/api/areas/tables/${id}`); await loadAreas(); }
+    catch (e) { alert("Masa silinemedi: " + e.message); }
+}
+
+document.getElementById("areaForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("newAreaName").value.trim();
+    if (!name) { alert("Bölüm adı boş olamaz"); return; }
+    try {
+        await API.post("/api/areas", { name, sort_order: areas.length });
+        document.getElementById("areaForm").reset();
+        await loadAreas();
+    } catch (e) { alert("Bölüm eklenemedi: " + e.message); }
+});
+
+document.getElementById("tableForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!selectedAreaId) { alert("Önce bir salon bölümü seçin"); return; }
+    const name = document.getElementById("newTableName").value.trim();
+    if (!name) { alert("Masa adı boş olamaz"); return; }
+    const area = areas.find(a => a.id === selectedAreaId);
+    try {
+        await API.post(`/api/areas/${selectedAreaId}/tables`, { name, sort_order: (area?.tables || []).length });
+        document.getElementById("tableForm").reset();
+        await loadAreas();
+    } catch (e) { alert("Masa eklenemedi: " + e.message); }
+});
+
 // ============= INITIALIZATION =============
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -571,6 +790,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadCategories();
     await loadProducts();
     selectCategory(null); // default to "Tümü"
+
+    // Salonlar: areas + tables
+    await loadAreas();
 
     // Load reports with default dates
     setDateDefaults();
@@ -582,4 +804,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("sales-report-tab")?.addEventListener("click", loadSalesReport);
     document.getElementById("product-analysis-tab")?.addEventListener("click", loadProductSalesAnalysis);
     document.getElementById("customer-analysis-tab")?.addEventListener("click", loadCustomerSpendingAnalysis);
+    document.getElementById("all-orders-tab")?.addEventListener("click", () => loadOrdersReport(1));
+
+    // Orders report: type + status filter chips
+    document.getElementById("ordTypeFilter")?.addEventListener("click", (e) => {
+        const chip = e.target.closest(".ord-chip"); if (!chip) return;
+        document.querySelectorAll("#ordTypeFilter .ord-chip").forEach(b => b.classList.remove("active"));
+        chip.classList.add("active");
+        _ordersFilterType = chip.dataset.type;
+        loadOrdersReport(1);
+    });
+    document.getElementById("ordStatusFilter")?.addEventListener("click", (e) => {
+        const chip = e.target.closest(".ord-chip"); if (!chip) return;
+        document.querySelectorAll("#ordStatusFilter .ord-chip").forEach(b => b.classList.remove("active"));
+        chip.classList.add("active");
+        _ordersFilterStatus = chip.dataset.status;
+        loadOrdersReport(1);
+    });
 });

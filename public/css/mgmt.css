@@ -267,6 +267,32 @@ body {
 .btn-danger:hover { background: #dc2626; }
 
 .btn-ghost { background: none; border: 1.5px solid var(--border); color: var(--muted); }
+
+/* Orders report: type + status filter chips */
+.ord-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ord-filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ord-filter-label { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-right: 2px; }
+.ord-chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+  font-family: inherit;
+}
+.ord-chip:hover { border-color: var(--accent); color: var(--accent); }
+.ord-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-ghost:hover { background: #f1f5f9; color: var(--text); }
 
 .btn-sm { padding: 4px 10px; font-size: .75rem; border-radius: 5px; }

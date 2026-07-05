@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>EFE POS — Yönetim</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/mgmt.css?v=202606070800">
+  <link rel="stylesheet" href="/css/mgmt.css?v=202607052100">
 </head>
 <body>
 
@@ -24,6 +24,7 @@
     <!-- Tabs -->
     <div class="mgmt-tabs">
       <button class="mgmt-tab active" data-tab="catalog"><span class="tab-icon">📦</span>Ürün &amp; Kategori</button>
+      <button class="mgmt-tab" data-tab="salonlar"><span class="tab-icon">🍽️</span>Salonlar</button>
       <button class="mgmt-tab" data-tab="reports"><span class="tab-icon">📊</span>Raporlama</button>
     </div>
 
@@ -113,6 +114,47 @@
       </div>
     </div>
 
+    <!-- ── TAB: Salonlar (master-detail: areas + tables) ──── -->
+    <div class="tab-content" id="tab-salonlar" style="display:none">
+      <div class="master-detail">
+
+        <!-- Master: salon areas -->
+        <div class="mgmt-card">
+          <div class="mgmt-card-header">
+            <span class="mgmt-card-title">🍽️ Salon Bölümleri</span>
+          </div>
+          <div class="mgmt-card-body">
+            <div id="areaList" class="cat-list">
+              <p class="mgmt-empty">Yükleniyor...</p>
+            </div>
+            <form id="areaForm" class="cat-add-form">
+              <input type="text" class="form-input" id="newAreaName" required placeholder="Yeni bölüm (ör. Bahçe)">
+              <button type="submit" class="btn btn-primary btn-sm">+ Ekle</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Detail: tables of the selected area -->
+        <div class="detail-col">
+          <div class="mgmt-card">
+            <div class="mgmt-card-header">
+              <span class="mgmt-card-title" id="tablesTitle">Masalar</span>
+            </div>
+            <div class="mgmt-card-body">
+              <div id="tableList" class="cat-list">
+                <p class="mgmt-empty">Önce bir salon bölümü seçin</p>
+              </div>
+              <form id="tableForm" class="cat-add-form">
+                <input type="text" class="form-input" id="newTableName" required placeholder="Yeni masa (ör. Masa 5)">
+                <button type="submit" class="btn btn-primary btn-sm">+ Ekle</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ── TAB: Raporlar ─────────────────────────────────── -->
     <div class="tab-content" id="tab-reports" style="display:none">
 
@@ -121,6 +163,7 @@
         <button class="mgmt-tab active" data-report="sales" id="sales-report-tab">📈 Satış Raporu</button>
         <button class="mgmt-tab" data-report="products" id="product-analysis-tab">📦 Ürün Analizi</button>
         <button class="mgmt-tab" data-report="customers" id="customer-analysis-tab">👥 Müşteri Analizi</button>
+        <button class="mgmt-tab" data-report="orders" id="all-orders-tab">🧾 Tüm Siparişler</button>
       </div>
 
       <!-- Sales report -->
@@ -255,6 +298,57 @@
         </div>
       </div>
 
+      <!-- All orders (paginated, newest first) -->
+      <div id="orders-report-panel" style="display:none">
+        <div class="mgmt-card">
+          <div class="mgmt-card-header">
+            <span class="mgmt-card-title">🧾 Tüm Siparişler</span>
+            <span id="ordersReportInfo" style="margin-left:auto;font-size:.8rem;color:var(--muted);"></span>
+          </div>
+          <div class="mgmt-card-body">
+            <!-- Type + status filters -->
+            <div class="ord-filters">
+              <div class="ord-filter-group" id="ordTypeFilter">
+                <span class="ord-filter-label">Tür</span>
+                <button class="ord-chip active" data-type="">Tümü</button>
+                <button class="ord-chip" data-type="salon">🍽️ Masa</button>
+                <button class="ord-chip" data-type="gelal">🛍️ Gel Al</button>
+                <button class="ord-chip" data-type="paket">📦 Paket</button>
+              </div>
+              <div class="ord-filter-group" id="ordStatusFilter">
+                <span class="ord-filter-label">Durum</span>
+                <button class="ord-chip active" data-status="">Tümü</button>
+                <button class="ord-chip" data-status="open">Açık / Devam eden</button>
+                <button class="ord-chip" data-status="paid">Tamamlanan</button>
+                <button class="ord-chip" data-status="cancelled">İptal</button>
+              </div>
+            </div>
+            <table class="mgmt-table">
+              <thead>
+                <tr>
+                  <th style="width:7%">#</th>
+                  <th style="width:17%">Tarih</th>
+                  <th style="width:18%">Tür</th>
+                  <th style="width:18%">Müşteri</th>
+                  <th style="width:8%">Ürün</th>
+                  <th style="width:12%">Toplam</th>
+                  <th style="width:12%">Ödeme</th>
+                  <th style="width:8%">Durum</th>
+                </tr>
+              </thead>
+              <tbody id="ordersReportBody">
+                <tr><td colspan="8" class="mgmt-empty">Yükleniyor...</td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;">
+              <button class="btn btn-ghost btn-sm" id="ordersPrevBtn">‹ Önceki</button>
+              <span id="ordersPageInfo" style="font-size:.85rem;color:var(--muted);">1 / 1</span>
+              <button class="btn btn-ghost btn-sm" id="ordersNextBtn">Sonraki ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /tab-reports -->
 
   </div><!-- /mgmt-body -->
@@ -318,15 +412,15 @@
     document.querySelectorAll('.mgmt-tab[data-report]').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.mgmt-tab[data-report]').forEach(b => b.classList.remove('active'));
-        ['sales-report-panel','product-analysis-panel','customer-analysis-panel'].forEach(id => {
+        ['sales-report-panel','product-analysis-panel','customer-analysis-panel','orders-report-panel'].forEach(id => {
           document.getElementById(id).style.display = 'none';
         });
         btn.classList.add('active');
-        const map = { sales: 'sales-report-panel', products: 'product-analysis-panel', customers: 'customer-analysis-panel' };
+        const map = { sales: 'sales-report-panel', products: 'product-analysis-panel', customers: 'customer-analysis-panel', orders: 'orders-report-panel' };
         document.getElementById(map[btn.dataset.report]).style.display = '';
       });
     });
   </script>
-  <script src="/js/management.js?v=202606070800"></script>
+  <script src="/js/management.js?v=202607052100"></script>
 </body>
 </html>
