@@ -50,8 +50,14 @@ app.put('/:id', async (c) => {
 })
 
 app.delete('/:id', async (c) => {
-  const db = getDb(c.env.DB)
-  await db.delete(customers).where(eq(customers.id, Number(c.req.param('id'))))
+  const id = Number(c.req.param('id'))
+  // cari_payments has a FK to customers (D1 enforces foreign keys), so remove
+  // those child rows first, atomically. Past orders keep their customer_id as
+  // historical records (no FK) — they just no longer resolve to a name.
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM cari_payments WHERE customer_id = ?').bind(id),
+    c.env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(id),
+  ])
   return c.json({ ok: true })
 })
 

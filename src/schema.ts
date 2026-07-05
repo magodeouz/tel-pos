@@ -33,10 +33,25 @@ export const products = sqliteTable('products', {
   sortOrder: integer('sort_order').default(0),
 })
 
+export const areas = sqliteTable('areas', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  sortOrder: integer('sort_order').default(0),
+})
+
+export const diningTables = sqliteTable('dining_tables', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  areaId: integer('area_id').notNull(),
+  name: text('name').notNull(),
+  sortOrder: integer('sort_order').default(0),
+})
+
 export const orders = sqliteTable('orders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   customerId: integer('customer_id'),
   status: text('status').default('open'),
+  orderType: text('order_type').default('paket'),
+  tableId: integer('table_id'),
   paymentMethod: text('payment_method').default('pending'),
   discountAmount: real('discount_amount').default(0),
   discountPercent: real('discount_percent').default(0),

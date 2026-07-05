@@ -4,6 +4,7 @@ import { requireAuth } from './security'
 import authRoute from './routes/auth'
 import customersRoute from './routes/customers'
 import categoriesRoute from './routes/categories'
+import areasRoute from './routes/areas'
 import productsRoute from './routes/products'
 import ordersRoute from './routes/orders'
 import incomingCallRoute from './routes/incoming_call'
@@ -67,6 +68,7 @@ app.use('/api/*', async (c, next) => {
 // ── Protected routes ──────────────────────────────────────────
 app.route('/api/customers', customersRoute)
 app.route('/api/categories', categoriesRoute)
+app.route('/api/areas', areasRoute)
 app.route('/api/products', productsRoute)
 app.route('/api/orders', ordersRoute)
 app.route('/api/incoming-call', incomingCallRoute)
