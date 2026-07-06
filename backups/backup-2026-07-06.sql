@@ -14,15 +14,16 @@ CREATE TABLE customers (
   note TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
-INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(1,'05559999998','Test2','Adres',NULL,'2026-06-06 16:12:00');
-INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(2,'05551112233','Test Müşteri','Adres',NULL,'2026-06-06 16:13:42');
-INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(3,'05440000099','QA Test','Test Cad',NULL,'2026-06-06 16:24:40');
-INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(4,'05345171111','Test','askjlasdjkasdkjlasdjkl','slşdkfas','2026-06-06 17:08:21');
-INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(5,'0000','Test','asda','asda','2026-06-06 19:16:56');
-INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(6,'05551234567','uıuhuı','','','2026-06-06 19:37:15');
-INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(7,'+905077331535','asdsa asdasda','sdaslkd','Kapısını çalma gergin adam','2026-06-07 20:46:38');
 INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(8,'05358238135','Oğuz AKPINAR skdsa','Erzene, 116/8. Sk. No:1, Kat 5 Daire 24 BCMS Konutları 35040 Bornova/İzmir','','2026-06-07 21:19:15');
 INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(9,'05422733669','orhan  TOPAL','aşskdasda','asdasd','2026-06-09 17:06:52');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(10,'05319677033','Mersin Branda','Mersin Branda','','2026-07-03 12:44:02');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(11,'+905530024426','Enes Topal','Sarılar','','2026-07-03 12:46:06');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(12,'+905376065442','Halim Tuna Tek','Tuna Tek','','2026-07-03 12:49:05');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(13,'+905069056705','Cüzdancı','Bim Depo yanı Cüzdancı','','2026-07-03 15:49:12');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(14,'+905319640907','Tuncay Su Sporları','Su Sporları','','2026-07-03 18:01:41');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(15,'+905426747381','Eymen Erkek Kuaför','Kasap Karşısı Kuaför','','2026-07-04 08:58:00');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(16,'+905456817503','Emre Koca Av Bayi','Şurası','','2026-07-05 14:00:46');
+INSERT INTO "customers" ("id","phone","name","address","note","created_at") VALUES(17,'+905379796299','Orhan Topal','Burası','','2026-07-05 16:59:37');
 CREATE TABLE categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
@@ -68,14 +69,34 @@ INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amo
 INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(87,NULL,'paid','nakit',0,0,'','2026-06-27 12:27:40','paket',NULL);
 INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(88,NULL,'open','pending',0,0,'','2026-06-27 12:31:04','salon',3);
 INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(89,NULL,'paid','odenmes',0,0,'','2026-06-27 12:40:02','salon',5);
-INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(90,NULL,'open','pending',0,0,'','2026-06-27 12:54:48','paket',NULL);
-INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(91,NULL,'open','pending',0,0,'','2026-06-27 12:56:09','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(90,NULL,'cancelled','pending',0,0,'','2026-06-27 12:54:48','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(91,NULL,'cancelled','pending',0,0,'','2026-06-27 12:56:09','paket',NULL);
 INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(92,NULL,'cancelled','pending',0,0,'','2026-06-27 13:30:34','salon',1);
 INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(93,NULL,'cancelled','pending',0,0,'','2026-06-27 13:31:50','salon',2);
 INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(94,NULL,'paid','odenmes',0,0,'','2026-06-27 13:36:08','salon',1);
 INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(95,NULL,'cancelled','pending',0,0,'','2026-06-27 14:45:08','salon',1);
-INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(96,NULL,'open','pending',25,0,'','2026-06-27 16:33:13','salon',9);
-INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(97,1,'open','pending',0,0,'','2026-06-27 17:06:18','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(96,NULL,'paid','nakit',25,0,'','2026-06-27 16:33:13','salon',9);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(97,1,'cancelled','pending',0,0,'','2026-06-27 17:06:18','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(98,NULL,'paid','nakit',0,0,'','2026-07-01 07:13:01','salon',1);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(99,NULL,'cancelled','pending',0,0,'','2026-07-03 06:53:40','salon',1);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(100,10,'paid','nakit',0,0,'','2026-07-03 12:44:09','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(101,11,'cancelled','pending',0,0,'','2026-07-03 12:46:07','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(102,12,'paid','kredi_karti',0,0,'','2026-07-03 12:49:05','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(103,8,'cancelled','pending',0,0,'','2026-07-03 14:12:48','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(104,13,'cancelled','pending',0,0,'','2026-07-03 15:49:12','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(105,14,'cancelled','pending',0,0,'','2026-07-03 18:01:41','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(106,NULL,'paid','nakit',0,0,'','2026-07-04 08:36:45','salon',1);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(107,15,'cancelled','pending',0,0,'','2026-07-04 08:58:00','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(108,NULL,'paid','odenmes',0,0,'','2026-07-05 13:41:08','salon',1);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(109,NULL,'cancelled','pending',0,0,'','2026-07-05 13:41:35','salon',2);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(110,13,'cancelled','pending',0,0,'','2026-07-05 13:41:42','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(111,NULL,'cancelled','pending',0,0,'','2026-07-05 13:43:31','salon',2);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(112,NULL,'cancelled','pending',0,0,'','2026-07-05 13:44:24','salon',2);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(113,NULL,'cancelled','pending',0,0,'','2026-07-05 13:44:44','salon',2);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(114,NULL,'cancelled','pending',0,0,'','2026-07-05 13:55:43','salon',2);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(115,16,'open','pending',0,0,'','2026-07-05 14:00:47','paket',NULL);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(116,NULL,'cancelled','pending',0,0,'','2026-07-05 15:30:47','salon',2);
+INSERT INTO "orders" ("id","customer_id","status","payment_method","discount_amount","discount_percent","note","created_at","order_type","table_id") VALUES(117,17,'open','pending',0,0,'','2026-07-05 16:59:37','paket',NULL);
 CREATE TABLE order_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   order_id INTEGER NOT NULL,
@@ -100,6 +121,20 @@ INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price")
 INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(113,94,104,1,250);
 INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(114,95,107,1,100);
 INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(115,96,104,3,250);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(117,98,106,1,200);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(118,99,105,1,200);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(119,100,104,1,250);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(120,101,107,1,100);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(121,102,104,3,250);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(122,106,103,1,300);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(123,107,106,1,200);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(124,108,104,1,250);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(125,108,109,1,50);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(126,115,106,3,200);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(128,115,107,1,100);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(130,115,112,3,60);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(131,88,112,1,60);
+INSERT INTO "order_items" ("id","order_id","product_id","quantity","unit_price") VALUES(132,117,112,1,60);
 CREATE TABLE incoming_calls (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   phone TEXT NOT NULL,
@@ -158,6 +193,49 @@ INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(4
 INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(50,'05348214399',0,'2026-06-11 12:22:03');
 INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(51,'05322324437',0,'2026-06-11 19:05:06');
 INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(52,'05355951943',0,'2026-06-13 07:49:57');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(53,'+905417173177',1,'2026-07-03 11:48:00');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(54,'+905530024426',1,'2026-07-03 11:49:06');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(55,'+905530024426',1,'2026-07-03 11:49:59');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(56,'+905530024426',1,'2026-07-03 11:50:22');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(57,'+905468604777',1,'2026-07-03 12:26:22');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(58,'+905530024426',1,'2026-07-03 12:38:28');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(59,'+905319677033',1,'2026-07-03 12:39:08');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(60,'+905530024426',1,'2026-07-03 12:45:46');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(61,'+905530024426',1,'2026-07-03 12:46:40');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(62,'+905376065442',1,'2026-07-03 12:47:24');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(63,'+905511593169',1,'2026-07-03 13:40:16');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(64,'+905432733669',1,'2026-07-03 14:29:01');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(65,'+905319677033',1,'2026-07-03 14:41:38');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(66,'+905069056705',1,'2026-07-03 15:43:45');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(67,'+905417173177',1,'2026-07-03 16:25:58');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(68,'+905319640907',1,'2026-07-03 17:57:40');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(69,'+905444645715',1,'2026-07-03 19:47:21');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(70,'+905444645715',1,'2026-07-03 20:01:23');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(71,'+905417173177',0,'2026-07-04 08:05:26');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(72,'+905426747381',1,'2026-07-04 08:57:13');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(73,'+905352563281',1,'2026-07-04 10:52:01');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(74,'+905314081416',1,'2026-07-04 11:15:21');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(75,'+905314081416',1,'2026-07-04 11:16:24');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(76,'+905314081416',1,'2026-07-04 11:25:27');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(77,'+905511593169',1,'2026-07-04 11:55:36');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(78,'+905446776171',1,'2026-07-04 12:46:36');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(79,'+905319640907',1,'2026-07-04 14:13:45');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(80,'+905319677033',1,'2026-07-04 14:52:53');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(81,'+905466564574',1,'2026-07-04 15:22:33');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(82,'+905331525471',1,'2026-07-04 18:50:27');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(83,'+905376065442',1,'2026-07-04 19:29:16');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(84,'+905347836135',0,'2026-07-05 11:34:36');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(85,'+905415563065',0,'2026-07-05 11:35:55');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(86,'+905421688107',0,'2026-07-05 12:27:57');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(87,'+905424770734',0,'2026-07-05 13:08:00');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(88,'+905424770734',0,'2026-07-05 13:10:30');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(89,'+905456817503',1,'2026-07-05 13:59:14');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(90,'+905456817503',1,'2026-07-05 14:38:24');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(91,'+905456817503',1,'2026-07-05 14:41:29');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(92,'+905350760707',1,'2026-07-05 16:03:15');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(93,'+905422733669',1,'2026-07-05 16:40:17');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(94,'+905379796299',1,'2026-07-05 16:54:29');
+INSERT INTO "incoming_calls" ("id","phone","acknowledged","created_at") VALUES(95,'+905422733669',1,'2026-07-05 16:58:56');
 CREATE TABLE login_attempts (ip TEXT PRIMARY KEY, count INTEGER DEFAULT 1, reset_at INTEGER NOT NULL);
 CREATE TABLE cari_payments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -166,8 +244,6 @@ CREATE TABLE cari_payments (
   note TEXT DEFAULT '',
   created_at TEXT DEFAULT (datetime('now'))
 );
-INSERT INTO "cari_payments" ("id","customer_id","amount","note","created_at") VALUES(1,4,100,'','2026-06-06 18:25:11');
-INSERT INTO "cari_payments" ("id","customer_id","amount","note","created_at") VALUES(2,4,110,'','2026-06-06 18:25:20');
 CREATE TABLE d1_migrations(
 		id         INTEGER PRIMARY KEY AUTOINCREMENT,
 		name       TEXT UNIQUE,
@@ -203,13 +279,13 @@ INSERT INTO "dining_tables" ("id","area_id","name","sort_order") VALUES(10,2,'B6
 INSERT INTO "dining_tables" ("id","area_id","name","sort_order") VALUES(11,2,'B7',6);
 INSERT INTO "dining_tables" ("id","area_id","name","sort_order") VALUES(12,2,'B8',7);
 DELETE FROM sqlite_sequence;
-INSERT INTO "sqlite_sequence" ("name","seq") VALUES('incoming_calls',52);
+INSERT INTO "sqlite_sequence" ("name","seq") VALUES('incoming_calls',95);
 INSERT INTO "sqlite_sequence" ("name","seq") VALUES('users',2);
 INSERT INTO "sqlite_sequence" ("name","seq") VALUES('categories',27);
 INSERT INTO "sqlite_sequence" ("name","seq") VALUES('products',115);
-INSERT INTO "sqlite_sequence" ("name","seq") VALUES('orders',97);
-INSERT INTO "sqlite_sequence" ("name","seq") VALUES('order_items',115);
-INSERT INTO "sqlite_sequence" ("name","seq") VALUES('customers',9);
+INSERT INTO "sqlite_sequence" ("name","seq") VALUES('orders',117);
+INSERT INTO "sqlite_sequence" ("name","seq") VALUES('order_items',132);
+INSERT INTO "sqlite_sequence" ("name","seq") VALUES('customers',17);
 INSERT INTO "sqlite_sequence" ("name","seq") VALUES('cari_payments',2);
 INSERT INTO "sqlite_sequence" ("name","seq") VALUES('d1_migrations',6);
 INSERT INTO "sqlite_sequence" ("name","seq") VALUES('areas',2);
