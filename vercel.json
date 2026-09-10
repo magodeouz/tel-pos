@@ -1,9 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" },
-    { "source": "/", "destination": "/login.html" },
-    { "source": "/pos", "destination": "/index.html" },
-    { "source": "/management", "destination": "/management.html" },
-    { "source": "/admin", "destination": "/admin.html" }
-  ]
-}

@@ -47,5 +47,5 @@ jobs:
           git config user.email "backup@tel-pos"
           DATE=$(date +%Y-%m-%d)
           git add backups/
-          git diff --staged --quiet || git commit -m "backup: D1 snapshot $DATE"
+          git diff --staged --quiet || git commit -m "backup: D1 snapshot $DATE [skip ci]"
           git push
